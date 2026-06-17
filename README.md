@@ -17,10 +17,7 @@ off to use Piped's native (Shaka) player.
 
 ## Usage
 
-It is a drop-in replacement for the standard Piped frontend image and is
-configured the same way (via the `BACKEND_HOSTNAME` and `HTTP_MODE` environment
-variables). Replace the frontend image in your Piped deployment with this one;
-no other services change.
+It is a drop-in replacement for the standard Piped frontend image. Replace `1337kavin/piped-frontend` with `bruno704/piped-frontend-youtube-embed` to use it.
 
 ## Try it locally
 
