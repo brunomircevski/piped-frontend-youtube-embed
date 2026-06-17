@@ -1,0 +1,80 @@
+# Local, HTTP-only test stack for the Piped YouTube Embed frontend fork.
+#
+# All three Piped hostnames resolve to 127.0.0.1 because browsers map the
+# *.localhost TLD to loopback automatically. A single nginx on port 8080 routes
+# by Host header, mirroring the homelab setup minus Traefik/HTTPS.
+#
+#   Frontend: http://piped.localhost:8080
+#   API:      http://pipedapi.localhost:8080
+#   Proxy:    http://pipedproxy.localhost:8080
+#
+# Bring up with:  docker compose -f docker-compose.test.yml up --build
+
+services:
+    piped-frontend:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        image: piped-frontend-youtube-embed:dev
+        restart: unless-stopped
+        depends_on:
+            - piped
+        environment:
+            BACKEND_HOSTNAME: pipedapi.localhost:8080
+            HTTP_MODE: http
+        container_name: piped-frontend-ytembed
+
+    piped-proxy:
+        image: 1337kavin/piped-proxy:latest
+        restart: unless-stopped
+        environment:
+            - UDS=1
+        volumes:
+            - piped-proxy:/app/socket
+        container_name: piped-proxy
+
+    piped:
+        image: 1337kavin/piped:latest
+        restart: unless-stopped
+        volumes:
+            - ./config/config.properties:/app/config.properties:ro
+        depends_on:
+            - postgres
+        container_name: piped-backend
+
+    bg-helper:
+        image: 1337kavin/bg-helper-server:latest
+        restart: unless-stopped
+        container_name: piped-bg-helper
+
+    nginx:
+        image: nginx:mainline-alpine
+        restart: unless-stopped
+        ports:
+            - "8080:80"
+        volumes:
+            - ./config/nginx.conf:/etc/nginx/nginx.conf:ro
+            - ./config/pipedapi.conf:/etc/nginx/conf.d/pipedapi.conf:ro
+            - ./config/pipedproxy.conf:/etc/nginx/conf.d/pipedproxy.conf:ro
+            - ./config/pipedfrontend.conf:/etc/nginx/conf.d/pipedfrontend.conf:ro
+            - ./config/ytproxy.conf:/etc/nginx/snippets/ytproxy.conf:ro
+            - piped-proxy:/var/run/ytproxy
+        depends_on:
+            - piped
+            - piped-proxy
+            - piped-frontend
+        container_name: piped-nginx
+
+    postgres:
+        image: pgautoupgrade/pgautoupgrade:16-alpine
+        restart: unless-stopped
+        volumes:
+            - ./data/db:/var/lib/postgresql/data
+        environment:
+            - POSTGRES_DB=piped
+            - POSTGRES_USER=piped
+            - POSTGRES_PASSWORD=changeme
+        container_name: piped-postgres
+
+volumes:
+    piped-proxy: null

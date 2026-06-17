@@ -1,0 +1,106 @@
+diff --git a/src/components/PreferencesPage.vue b/src/components/PreferencesPage.vue
+index 6aad9517..0e10f699 100644
+--- a/src/components/PreferencesPage.vue
++++ b/src/components/PreferencesPage.vue
+@@ -9,6 +9,12 @@
+     </div>
+     <h1 v-t="'titles.preferences'" class="text-center font-bold" />
+     <hr />
++    <PreferenceRow for-id="chkYoutubeNoCookieEmbed">
++        <template #label>
++            <strong v-t="'actions.youtube_nocookie_embed'" />
++        </template>
++        <PreferenceSwitch id="chkYoutubeNoCookieEmbed" v-model="youtubeNoCookieEmbed" @change="onChange" />
++    </PreferenceRow>
+     <label
+         for="ddlTheme"
+         class="mx-[15vw] my-2 flex items-center justify-between odd:bg-gray-200 max-md:mx-[2vw] dark:odd:bg-dark-800"
+@@ -509,6 +515,7 @@ const showMarkers = usePreferenceBoolean("showMarkers", true);
+ const minSegmentLength = usePreferenceNumber("minSegmentLength", 0);
+ const dearrow = usePreferenceBoolean("dearrow", false);
+ const selectedTheme = usePreferenceString("theme", "dark");
++const youtubeNoCookieEmbed = usePreferenceBoolean("youtubeNoCookieEmbed", true);
+ const autoPlayVideo = usePreferenceBoolean("playerAutoPlay", true);
+ const autoDisplayCaptions = usePreferenceBoolean("autoDisplayCaptions", false);
+ const autoPlayNextCountdown = usePreferenceNumber("autoPlayNextCountdown", 5);
+diff --git a/src/components/WatchVideo.vue b/src/components/WatchVideo.vue
+index 7755ca50..3f5070f9 100644
+--- a/src/components/WatchVideo.vue
++++ b/src/components/WatchVideo.vue
+@@ -1,6 +1,8 @@
+ <template>
+     <div v-if="video && isEmbed" class="absolute top-0 left-0 z-50 size-full bg-black">
++        <YouTubeEmbed v-if="useYoutubeEmbed" :video-id="getVideoId()" :start-time="embedStartTime" :is-embed="true" />
+         <VideoPlayer
++            v-else
+             ref="videoPlayer"
+             :video="video"
+             :sponsors="sponsors"
+@@ -21,7 +23,13 @@
+             <div class="min-w-0 flex-auto">
+                 <Teleport defer to="#theaterModeSpot" :disabled="!theaterMode">
+                     <div class="flex flex-row">
+-                        <keep-alive>
++                        <YouTubeEmbed
++                            v-if="useYoutubeEmbed"
++                            class="min-w-0 flex-auto"
++                            :video-id="getVideoId()"
++                            :start-time="embedStartTime"
++                        />
++                        <keep-alive v-else>
+                             <VideoPlayer
+                                 ref="videoPlayer"
+                                 :video="video"
+@@ -355,6 +363,7 @@
+ import { ref, computed, onMounted, onActivated, onDeactivated, onUnmounted } from "vue";
+ import { useRoute, useRouter } from "vue-router";
+ import VideoPlayer from "./VideoPlayer.vue";
++import YouTubeEmbed from "./YouTubeEmbed.vue";
+ import ContentItem from "./ContentItem.vue";
+ import ErrorHandler from "./ErrorHandler.vue";
+ import CommentItem from "./CommentItem.vue";
+@@ -445,6 +454,14 @@ const isEmbed = computed(() => {
+     return String(route.path).indexOf("/embed/") == 0;
+ });
+ 
++const useYoutubeEmbed = computed(() => {
++    return getPreferenceBoolean("youtubeNoCookieEmbed", true);
++});
++
++const embedStartTime = computed(() => {
++    return parseTimeParam(route.query.t) || 0;
++});
++
+ const uploadDate = computed(() => {
+     return new Date(video.value.uploadDate).toLocaleString(undefined, {
+         month: "short",
+@@ -761,7 +778,7 @@ onMounted(() => {
+                 };
+             }
+         })();
+-        if (active.value) videoPlayer.value.loadVideo();
++        if (active.value && !useYoutubeEmbed.value && videoPlayer.value) videoPlayer.value.loadVideo();
+     });
+     playlistId.value = route.query.list;
+     index.value = Number(route.query.index);
+@@ -785,7 +802,7 @@ onActivated(() => {
+     showChapters.value = !getPreferenceBoolean("minimizeChapters", false);
+     if (video.value?.duration) {
+         document.title = video.value.title + " - Piped";
+-        videoPlayer.value.loadVideo();
++        if (!useYoutubeEmbed.value && videoPlayer.value) videoPlayer.value.loadVideo();
+     }
+     window.addEventListener("scroll", handleScroll);
+ });
+diff --git a/src/locales/en.json b/src/locales/en.json
+index 4db4740f..3d0bdfed 100644
+--- a/src/locales/en.json
++++ b/src/locales/en.json
+@@ -52,6 +52,7 @@
+         "skip_segment": "Skip Segment",
+         "enable_dearrow": "Enable DeArrow",
+         "theme": "Theme",
++        "youtube_nocookie_embed": "Use YouTube nocookie embed",
+         "auto": "Auto",
+         "dark": "Dark",
+         "light": "Light",
