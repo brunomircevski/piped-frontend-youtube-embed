@@ -35,12 +35,15 @@
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 
+const emit = defineEmits(["timeupdate"]);
+
 const STORAGE_SPEED_KEY = "playbackRate";
 const STORAGE_PROGRESS_KEY = "watchProgress";
 const SPEEDS = [1, 1.25, 1.5, 1.75, 2, 2.5, 3];
 const MIN_SAVE_SECONDS = 10;
 const MAX_PROGRESS_RATIO = 0.9;
 const PROGRESS_POLL_MS = 5000;
+const SKIP_SECONDS = 10;
 
 const props = defineProps({
     videoId: {
@@ -60,10 +63,13 @@ const speeds = SPEEDS;
 const currentRate = ref(readStoredSpeed());
 
 let lastKnownTime = { currentTime: 0, duration: 0 };
+let playerState = -1;
+let isMuted = false;
 let progressPollTimer = null;
 let messageHandler = null;
 let visibilityHandler = null;
 let pagehideHandler = null;
+let keydownHandler = null;
 
 function readJSON(key) {
     try {
@@ -184,7 +190,76 @@ function applyStoredSpeed() {
 
 function seekToSavedPosition(videoId) {
     const start = getStartSeconds(videoId);
-    if (start > 0) postCommand("seekTo", [start, true]);
+    if (start > 0) seek(start);
+}
+
+function seek(time) {
+    const seconds = Math.max(0, Math.floor(time));
+    postCommand("seekTo", [seconds, true]);
+    lastKnownTime.currentTime = seconds;
+}
+
+function seekRelative(delta) {
+    const duration = lastKnownTime.duration > 0 ? lastKnownTime.duration : Infinity;
+    seek(Math.min(lastKnownTime.currentTime + delta, duration));
+}
+
+function togglePlayPause() {
+    if (playerState === 1) postCommand("pauseVideo");
+    else postCommand("playVideo");
+}
+
+function toggleMute() {
+    isMuted = !isMuted;
+    postCommand(isMuted ? "mute" : "unMute");
+}
+
+function isFullScreenEnabled() {
+    return Boolean(document.fullscreenElement);
+}
+
+function shouldIgnoreKeyboard(event) {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return false;
+    const tag = target.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+    return target.isContentEditable;
+}
+
+function onKeyDown(event) {
+    if (shouldIgnoreKeyboard(event)) return;
+
+    switch (event.code) {
+        case "ArrowLeft":
+            event.preventDefault();
+            seekRelative(-SKIP_SECONDS);
+            break;
+        case "ArrowRight":
+            event.preventDefault();
+            seekRelative(SKIP_SECONDS);
+            break;
+        case "Space":
+            event.preventDefault();
+            togglePlayPause();
+            break;
+        case "KeyM":
+            if (event.ctrlKey || event.metaKey || event.altKey) return;
+            event.preventDefault();
+            toggleMute();
+            break;
+    }
+}
+
+function setupKeyboardListener() {
+    if (keydownHandler) return;
+    keydownHandler = onKeyDown;
+    document.addEventListener("keydown", keydownHandler);
+}
+
+function teardownKeyboardListener() {
+    if (!keydownHandler) return;
+    document.removeEventListener("keydown", keydownHandler);
+    keydownHandler = null;
 }
 
 function setupMessageListener() {
@@ -201,12 +276,17 @@ function setupMessageListener() {
         }
         if (data?.event !== "infoDelivery" || !data.info) return;
 
-        const { currentTime, duration, playerState } = data.info;
-        if (typeof currentTime === "number") lastKnownTime.currentTime = currentTime;
+        const { currentTime, duration, playerState: state, muted } = data.info;
+        if (typeof currentTime === "number") {
+            lastKnownTime.currentTime = currentTime;
+            emit("timeupdate", currentTime);
+        }
         if (typeof duration === "number" && duration > 0) lastKnownTime.duration = duration;
+        if (typeof state === "number") playerState = state;
+        if (typeof muted === "boolean") isMuted = muted;
 
         // playerState === 0 means "ended": mark as finished (clears saved progress).
-        if (playerState === 0 && lastKnownTime.duration > 0) {
+        if (state === 0 && lastKnownTime.duration > 0) {
             saveWatchProgress(props.videoId, lastKnownTime.duration, lastKnownTime.duration);
         }
     };
@@ -216,7 +296,10 @@ function setupMessageListener() {
 function startProgressTracking(videoId) {
     stopProgressTracking();
     lastKnownTime = { currentTime: 0, duration: 0 };
+    playerState = -1;
+    isMuted = false;
     setupMessageListener();
+    setupKeyboardListener();
 
     const tick = () => {
         enablePlayerListening();
@@ -275,11 +358,17 @@ onMounted(() => {
 onBeforeUnmount(() => {
     flushProgress();
     stopProgressTracking();
+    teardownKeyboardListener();
     if (messageHandler) window.removeEventListener("message", messageHandler);
     if (visibilityHandler) document.removeEventListener("visibilitychange", visibilityHandler);
     if (pagehideHandler) window.removeEventListener("pagehide", pagehideHandler);
     messageHandler = null;
     visibilityHandler = null;
     pagehideHandler = null;
+});
+
+defineExpose({
+    seek,
+    isFullScreenEnabled,
 });
 </script>

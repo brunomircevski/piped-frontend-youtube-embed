@@ -24,34 +24,43 @@ index 6aad9517..0e10f699 100644
  const autoDisplayCaptions = usePreferenceBoolean("autoDisplayCaptions", false);
  const autoPlayNextCountdown = usePreferenceNumber("autoPlayNextCountdown", 5);
 diff --git a/src/components/WatchVideo.vue b/src/components/WatchVideo.vue
-index 7755ca50..3f5070f9 100644
+index 7755ca50..a5439a20 100644
 --- a/src/components/WatchVideo.vue
 +++ b/src/components/WatchVideo.vue
-@@ -1,6 +1,8 @@
+@@ -1,6 +1,15 @@
  <template>
      <div v-if="video && isEmbed" class="absolute top-0 left-0 z-50 size-full bg-black">
-+        <YouTubeEmbed v-if="useYoutubeEmbed" :video-id="getVideoId()" :start-time="embedStartTime" :is-embed="true" />
++        <YouTubeEmbed
++            v-if="useYoutubeEmbed"
++            ref="youtubeEmbed"
++            :video-id="getVideoId()"
++            :start-time="embedStartTime"
++            :is-embed="true"
++            @timeupdate="onTimeUpdate"
++        />
          <VideoPlayer
 +            v-else
              ref="videoPlayer"
              :video="video"
              :sponsors="sponsors"
-@@ -21,7 +23,13 @@
+@@ -21,7 +30,15 @@
              <div class="min-w-0 flex-auto">
                  <Teleport defer to="#theaterModeSpot" :disabled="!theaterMode">
                      <div class="flex flex-row">
 -                        <keep-alive>
 +                        <YouTubeEmbed
 +                            v-if="useYoutubeEmbed"
++                            ref="youtubeEmbed"
 +                            class="min-w-0 flex-auto"
 +                            :video-id="getVideoId()"
 +                            :start-time="embedStartTime"
++                            @timeupdate="onTimeUpdate"
 +                        />
 +                        <keep-alive v-else>
                              <VideoPlayer
                                  ref="videoPlayer"
                                  :video="video"
-@@ -355,6 +363,7 @@
+@@ -355,6 +372,7 @@
  import { ref, computed, onMounted, onActivated, onDeactivated, onUnmounted } from "vue";
  import { useRoute, useRouter } from "vue-router";
  import VideoPlayer from "./VideoPlayer.vue";
@@ -59,7 +68,15 @@ index 7755ca50..3f5070f9 100644
  import ContentItem from "./ContentItem.vue";
  import ErrorHandler from "./ErrorHandler.vue";
  import CommentItem from "./CommentItem.vue";
-@@ -445,6 +454,14 @@ const isEmbed = computed(() => {
+@@ -391,6 +409,7 @@ const router = useRouter();
+ const smallViewQuery = window.matchMedia("(max-width: 640px)");
+ 
+ const videoPlayer = ref(null);
++const youtubeEmbed = ref(null);
+ const commentsEl = ref(null);
+ 
+ const video = ref(null);
+@@ -445,6 +464,14 @@ const isEmbed = computed(() => {
      return String(route.path).indexOf("/embed/") == 0;
  });
  
@@ -74,7 +91,29 @@ index 7755ca50..3f5070f9 100644
  const uploadDate = computed(() => {
      return new Date(video.value.uploadDate).toLocaleString(undefined, {
          month: "short",
-@@ -761,7 +778,7 @@ onMounted(() => {
+@@ -641,7 +668,8 @@ function getVideoId() {
+ }
+ 
+ function navigate(time) {
+-    videoPlayer.value.seek(time);
++    if (useYoutubeEmbed.value) youtubeEmbed.value?.seek(time);
++    else videoPlayer.value?.seek(time);
+ }
+ 
+ function onTimeUpdate(time) {
+@@ -708,7 +736,10 @@ function navigateNext() {
+                 searchParams.set(param, params[param]);
+                 break;
+         }
+-    searchParams.set("fullscreen", videoPlayer.value.isFullScreenEnabled());
++    const fullScreen = useYoutubeEmbed.value
++        ? (youtubeEmbed.value?.isFullScreenEnabled?.() ?? Boolean(document.fullscreenElement))
++        : videoPlayer.value?.isFullScreenEnabled?.();
++    searchParams.set("fullscreen", fullScreen);
+     const paramStr = searchParams.toString();
+     if (paramStr.length > 0) url += "&" + paramStr;
+     router.push(url);
+@@ -761,7 +792,7 @@ onMounted(() => {
                  };
              }
          })();
@@ -83,7 +122,7 @@ index 7755ca50..3f5070f9 100644
      });
      playlistId.value = route.query.list;
      index.value = Number(route.query.index);
-@@ -785,7 +802,7 @@ onActivated(() => {
+@@ -785,7 +816,7 @@ onActivated(() => {
      showChapters.value = !getPreferenceBoolean("minimizeChapters", false);
      if (video.value?.duration) {
          document.title = video.value.title + " - Piped";

@@ -143,3 +143,11 @@ each image is traceable to the exact upstream commit it was built from.
    feature on and off.
 3. Build the image.
 4. Commit `UPSTREAM_REF` + `patches/` changes.
+
+
+## Push to Dockerhub
+
+```
+docker build -t bruno704/piped-frontend-youtube-embed:latest .
+docker push bruno704/piped-frontend-youtube-embed:latest
+```
