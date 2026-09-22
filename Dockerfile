@@ -9,7 +9,7 @@
 
 ARG UPSTREAM_REPO=https://github.com/TeamPiped/Piped.git
 # Default ref; overridden at build time from the UPSTREAM_REF file (see scripts / README).
-ARG UPSTREAM_REF=e341724a3f5fe46d9f318e8acba207688f1045de
+ARG UPSTREAM_REF=70453d1b5795d4acee90a33a2596a315ef72d961
 
 #############################################
 # Stage 1: fetch upstream + apply our changes
