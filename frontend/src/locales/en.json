@@ -17,12 +17,24 @@
         "bookmarks": "Bookmarks",
         "channel_groups": "Channel groups",
         "dearrow": "DeArrow",
-        "custom_instances": "Custom instances"
+        "custom_instances": "Custom instances",
+        "search": "Search"
     },
     "player": {
         "watch_on": "View on {0}",
         "failed": "Failed with error code {0}. See logs for more info.",
-        "undo": "Undo"
+        "undo": "Undo",
+        "expand": "Expand player",
+        "minimize": "Minimize player",
+        "play": "Play",
+        "pause": "Pause",
+        "audio": "Audio",
+        "audio_only": "Audio only",
+        "video": "Video",
+        "back_10": "Back 10 seconds",
+        "forward_10": "Forward 10 seconds",
+        "seek": "Seek",
+        "audio_unavailable": "No audio stream is available for this video right now."
     },
     "actions": {
         "subscribe": "Subscribe",
@@ -180,8 +192,13 @@
         "hide_password": "Hide password",
         "rss_feed": "RSS feed",
         "playlist_rss_feed": "Playlist RSS feed",
-        "embed_background_playback": "Keep playing when the screen is off or the app is in the background",
-        "play_all": "Play all"
+        "play_all": "Play all",
+        "close": "Close",
+        "open_in_youtube": "Open in YouTube",
+        "miniplayer": "Miniplayer",
+        "playlist": "Playlist",
+        "loop": "Loop",
+        "auto_audio_when_hidden": "On phones, keep playing as audio when the screen turns off or the app is in the background"
     },
     "comment": {
         "pinned_by": "Pinned by {author}",
@@ -258,6 +275,7 @@
         "skipped": "Skipped",
         "selected_subscriptions": "Selected subscriptions",
         "subscriber_count": "{count} subscribers",
-        "playlist_videos_unavailable": "The server didn't return any videos for this playlist."
+        "playlist_videos_unavailable": "The server didn't return any videos for this playlist.",
+        "native_player_quality": "When off, Piped's own player is used. YouTube currently blocks Piped backends from its high-quality streams, so that player usually gets a single 360p stream with no quality choice."
     }
 }

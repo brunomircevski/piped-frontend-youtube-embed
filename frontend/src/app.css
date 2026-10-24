@@ -31,6 +31,8 @@
     --text-muted: #606060;
     --ring: rgb(229 36 43 / 0.45);
     --shadow: 0 8px 24px rgb(0 0 0 / 0.12), 0 1px 3px rgb(0 0 0 / 0.08);
+    /* space at the bottom covered by browser UI; --toolbar-inset is set by useBottomInset.js */
+    --bottom-inset: calc(env(safe-area-inset-bottom, 0px) + var(--toolbar-inset, 0px));
 }
 
 .dark {

@@ -8,23 +8,27 @@
                     ><img alt="" src="/img/icons/logo.svg" height="28" width="28" class="-mr-2 w-8" />iped</router-link
                 >
             </div>
-            <div class="relative flex w-full max-w-xl items-center max-md:hidden">
+            <!-- A form, so the keyboard's search/enter key submits on Android too (no keypress there). -->
+            <form
+                role="search"
+                class="relative flex w-full max-w-xl items-center max-md:hidden"
+                @submit.prevent="submitSearch"
+            >
                 <i-fa6-solid-magnifying-glass class="pointer-events-none absolute left-4 text-sm text-muted" />
                 <input
                     ref="videoSearch"
                     v-model="searchText"
                     class="input h-10 w-full rounded-full bg-(--surface-muted) px-10 dark:border-transparent"
                     type="text"
-                    role="search"
+                    enterkeyhint="search"
                     :title="$t('actions.search')"
                     :placeholder="$t('actions.search')"
                     @keyup="onKeyUp"
-                    @keypress="onKeyPress"
                     @focus="onInputFocus"
                     @blur="onInputBlur"
                 />
                 <ClearButton v-if="searchText" @clear="searchText = ''" />
-            </div>
+            </form>
             <!-- navigation bar for large screen devices -->
             <ul class="hidden list-none items-center gap-1 md:flex md:flex-1 md:justify-end">
                 <li v-if="shouldShowTrending">
@@ -109,23 +113,27 @@
             </router-link>
         </div>
         <!-- search bar for mobile devices -->
-        <div v-show="showMobileSearch" class="relative flex w-full items-center px-3 pb-2.5 md:hidden">
+        <form
+            v-show="showMobileSearch"
+            role="search"
+            class="relative flex w-full items-center px-3 pb-2.5 md:hidden"
+            @submit.prevent="submitSearch"
+        >
             <i-fa6-solid-magnifying-glass class="pointer-events-none absolute left-7 text-sm text-muted" />
             <input
                 ref="mobileSearch"
                 v-model="searchText"
                 class="input h-10 w-full rounded-full bg-(--surface-muted) px-10 dark:border-transparent"
                 type="text"
-                role="search"
-                :title="$t('actions.search')"
-                :placeholder="$t('actions.search')"
+                enterkeyhint="search"
+                :title="$t('titles.search')"
+                :placeholder="$t('titles.search')"
                 @keyup="onKeyUp"
-                @keypress="onKeyPress"
                 @focus="onInputFocus"
                 @blur="onInputBlur"
             />
             <ClearButton v-if="searchText" class="right-6!" @clear="searchText = ''" />
-        </div>
+        </form>
         <SearchSuggestions
             v-show="(searchText || showSearchHistory) && suggestionsVisible"
             ref="searchSuggestions"
@@ -142,8 +150,10 @@ import SearchSuggestions from "./SearchSuggestions.vue";
 import ClearButton from "./ui/ClearButton.vue";
 import hotkeys from "hotkeys-js";
 import { getAuthToken } from "@/composables/useApi.js";
-import { getPreferenceBoolean, getPreferenceString } from "@/composables/usePreferences.js";
+import { getPreferenceBoolean } from "@/composables/usePreferences.js";
+import { getHomepagePreference } from "@/composables/useMisc.js";
 import { useConfig } from "@/composables/useConfig.js";
+import { mobileSearchRequest } from "@/composables/useMobileSearch.js";
 
 const router = useRouter();
 const route = useRoute();
@@ -163,6 +173,16 @@ function toggleMobileSearch() {
     if (showMobileSearch.value) nextTick(() => mobileSearch.value?.focus());
 }
 
+// Bottom nav's search button: always open, and focus so the keyboard comes up.
+watch(mobileSearchRequest, () => {
+    showMobileSearch.value = true;
+    showTopNav.value = false;
+    nextTick(() => {
+        mobileSearch.value?.focus();
+        mobileSearch.value?.select();
+    });
+});
+
 const { authConfig } = useConfig();
 const registrationDisabled = computed(() => authConfig.value?.registrationDisabled === true);
 
@@ -179,7 +199,7 @@ const shouldShowHistory = computed(() => {
 });
 
 const shouldShowTrending = computed(() => {
-    return getPreferenceString("homepage", "trending") != "trending";
+    return getHomepagePreference() != "trending";
 });
 
 const showSearchHistory = computed(() => {
@@ -212,12 +232,6 @@ function onKeyUp(e) {
     searchSuggestions.value.onKeyUp(e);
 }
 
-function onKeyPress(e) {
-    if (e.key === "Enter") {
-        submitSearch(e);
-    }
-}
-
 function onInputFocus() {
     if (showSearchHistory.value) searchSuggestions.value.refreshSuggestions();
     suggestionsVisible.value = true;
@@ -231,8 +245,9 @@ function onSearchTextChange(text) {
     searchText.value = text;
 }
 
-function submitSearch(e) {
-    e.target.blur();
+function submitSearch() {
+    // Closes the on-screen keyboard and the suggestions.
+    document.activeElement?.blur();
     if (searchText.value) {
         router.push({
             name: "SearchResults",

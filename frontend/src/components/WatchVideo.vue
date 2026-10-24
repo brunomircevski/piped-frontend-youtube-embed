@@ -7,7 +7,6 @@
             :start-time="embedStartTime"
             :sponsors="sponsors"
             :loop="selectedAutoLoop"
-            :is-embed="true"
             @timeupdate="onTimeUpdate"
         />
         <VideoPlayer
@@ -29,19 +28,14 @@
             </ToastComponent>
         </Transition>
         <div v-show="!video.error" class="flex gap-6">
-            <div class="min-w-0 flex-auto">
-                <Teleport defer to="#theaterModeSpot" :disabled="!theaterMode">
-                    <div class="group/player relative flex flex-row max-sm:-mx-3">
-                        <YouTubeEmbed
-                            v-if="useYoutubeEmbed"
-                            ref="youtubeEmbed"
-                            class="min-w-0 flex-auto"
-                            :video-id="getVideoId()"
-                            :start-time="embedStartTime"
-                            :sponsors="sponsors"
-                            :loop="selectedAutoLoop"
-                            @timeupdate="onTimeUpdate"
-                            @ended="onVideoEnded"
+            <div class="min-w-0 flex-auto" :style="dragFade">
+                <Teleport defer to="#theaterModeSpot" :disabled="!theaterMode || isMobile">
+                    <div class="relative flex flex-row max-lg:-mx-3 max-lg:-mt-4 sm:max-lg:-mx-6">
+                        <!-- GlobalPlayer draws the embed over this placeholder -->
+                        <div
+                            v-if="usesGlobalPlayer"
+                            :ref="setSlot"
+                            class="aspect-video max-h-[75vh] w-full min-w-0 flex-auto max-lg:max-h-svh"
                         />
                         <keep-alive v-else>
                             <VideoPlayer
@@ -55,37 +49,8 @@
                                 @navigate-next="navigateNext"
                             />
                         </keep-alive>
-                        <button
-                            v-if="!isMobile"
-                            class="absolute top-2 z-10 flex size-8 items-center justify-center rounded-full bg-black/50 text-xs text-white opacity-0 transition-opacity group-hover/player:opacity-100 hover:bg-black/75 focus-visible:opacity-100"
-                            :class="theaterMode ? 'left-2' : 'right-2'"
-                            :title="theaterMode ? 'Default view' : 'Theater mode'"
-                            @click="
-                                theaterMode = !theaterMode;
-                                setPreference('theaterMode', theaterMode);
-                            "
-                        >
-                            <i-fa6-solid-compress v-if="theaterMode" />
-                            <i-fa6-solid-expand v-else />
-                        </button>
                     </div>
                 </Teleport>
-                <div v-if="video && isMobile" class="mt-3 empty:hidden">
-                    <PlaylistVideos
-                        v-if="playlist"
-                        :playlist-id="playlistId"
-                        :playlist="playlist"
-                        :selected-index="index"
-                        :prefer-listen="isListening"
-                    />
-                    <ChaptersBar
-                        v-if="video?.chapters?.length > 0 && showChapters"
-                        :mobile-layout="true"
-                        :chapters="video.chapters"
-                        :player-position="currentTime"
-                        @seek="navigate"
-                    />
-                </div>
 
                 <!-- video title -->
                 <h1 class="mt-3 text-xl/snug font-semibold wrap-break-word" v-text="video.title" />
@@ -162,9 +127,21 @@
                         </button>
                         <button class="btn shrink-0" @click="showModal = !showModal">
                             <i-fa6-solid-circle-plus />
-                            <span v-t="'actions.add_to_playlist'" />
+                            <span v-t="'actions.playlist'" />
                         </button>
+                        <button
+                            v-if="usesGlobalPlayer"
+                            class="btn shrink-0"
+                            :aria-pressed="player.audioMode"
+                            @click="setAudioMode(!player.audioMode)"
+                        >
+                            <i-fa6-solid-tv v-if="player.audioMode" />
+                            <i-fa6-solid-headphones v-else />
+                            <span v-t="player.audioMode ? 'player.video' : 'player.audio'" />
+                        </button>
+                        <!-- the native player's own audio-only mode -->
                         <router-link
+                            v-if="!useYoutubeEmbed"
                             :to="toggleListenUrl"
                             :aria-label="(isListening ? 'Watch ' : 'Listen to ') + video.title"
                             :title="(isListening ? 'Watch ' : 'Listen to ') + video.title"
@@ -173,9 +150,18 @@
                             <i-fa6-solid-tv v-if="isListening" />
                             <i-fa6-solid-headphones v-else />
                         </router-link>
-                        <WatchOnButton :link="youtubeVideoHref" />
+                        <a
+                            :href="youtubeAppHref"
+                            target="_blank"
+                            rel="noopener"
+                            class="btn shrink-0"
+                            @click="embed?.pause()"
+                        >
+                            <i-fa6-brands-youtube />
+                            <span v-t="'actions.open_in_youtube'" />
+                        </a>
                         <WatchOnButton
-                            v-if="video.lbryId"
+                            v-if="video.lbryId && !useYoutubeEmbed"
                             :link="`https://odysee.com/${video.lbryId}`"
                             platform="Odysee"
                         />
@@ -202,6 +188,38 @@
                         :playlist-index="index"
                         @close="showShareModal = !showShareModal"
                     />
+                </div>
+
+                <!-- playback options -->
+                <div class="mt-4 flex flex-wrap items-center gap-2 text-sm *:h-9 *:rounded-full">
+                    <label for="chkAutoLoop" class="chip cursor-pointer">
+                        <UiCheckbox id="chkAutoLoop" v-model="selectedAutoLoop" />
+                        <span v-t="'actions.loop'" />
+                    </label>
+                    <template v-if="!isMobile">
+                        <button class="chip cursor-pointer" @click="toggleTheaterMode">
+                            <i-fa6-solid-compress v-if="theaterMode" />
+                            <i-fa6-solid-expand v-else />
+                            <span v-text="theaterMode ? 'Default view' : 'Theater mode'" />
+                        </button>
+                        <button v-if="usesGlobalPlayer" class="chip cursor-pointer" @click="minimizePlayer(router)">
+                            <i-fa6-solid-down-left-and-up-right-to-center />
+                            <span v-t="'actions.miniplayer'" />
+                        </button>
+                    </template>
+                    <div v-if="usesGlobalPlayer" class="ml-auto flex items-center gap-2 rounded-none!">
+                        <span v-t="'actions.playback_speed'" class="text-muted max-lg:hidden" />
+                        <div class="segmented h-full" role="group" :aria-label="$t('actions.playback_speed')">
+                            <button
+                                v-for="rate in SPEEDS"
+                                :key="rate"
+                                type="button"
+                                :aria-pressed="player.rate === rate"
+                                @click="embed?.setPlaybackSpeed(rate)"
+                                v-text="`${rate}×`"
+                            />
+                        </div>
+                    </div>
                 </div>
 
                 <!-- description -->
@@ -263,87 +281,152 @@
                     />
                 </div>
 
-                <!-- playback options -->
-                <div class="mt-3 flex flex-wrap items-center gap-2 text-sm">
-                    <label for="chkAutoLoop" class="chip cursor-pointer">
-                        <UiCheckbox id="chkAutoLoop" v-model="selectedAutoLoop" @change="onChange($event)" />
-                        <span v-t="'actions.loop_this_video'" />
-                    </label>
-                    <label for="chkAutoPlay" class="chip py-0 pr-1">
-                        <span v-t="'actions.auto_play_next_video'" />
-                        <select
-                            id="chkAutoPlay"
-                            v-model.number="selectedAutoPlay"
-                            class="input h-8 border-0 bg-transparent font-semibold focus:shadow-none"
-                            @change="onChange($event)"
-                        >
-                            <option v-t="'actions.never'" value="0" />
-                            <option v-t="'actions.playlists_only'" value="1" />
-                            <option v-t="'actions.always'" value="2" />
-                        </select>
-                    </label>
-                    <label v-if="video?.chapters?.length > 0" for="showChapters" class="chip cursor-pointer">
-                        <UiCheckbox id="showChapters" v-model="showChapters" />
-                        <span v-t="'actions.show_chapters'" />
-                    </label>
-                    <button
-                        v-if="isMobile"
-                        v-t="`actions.${showRecs ? 'minimize_recommendations' : 'show_recommendations'}`"
-                        class="chip cursor-pointer"
-                        @click="showRecs = !showRecs"
-                    />
-                </div>
-
-                <div v-if="isMobile && showRecs" class="mt-6 grid gap-4">
-                    <ContentItem
-                        v-for="related in video.relatedStreams"
-                        :key="related.url"
-                        :item="related"
+                <div v-if="isMobile && (playlist || video.chapters?.length > 0)" class="mt-4 grid grid-cols-1 gap-3">
+                    <PlaylistVideos
+                        v-if="playlist"
+                        :playlist-id="playlistId"
+                        :playlist="playlist"
+                        :selected-index="index"
                         :prefer-listen="isListening"
-                        height="94"
-                        width="168"
+                    />
+                    <ChaptersBar
+                        v-if="video.chapters?.length > 0"
+                        :mobile-layout="true"
+                        :chapters="video.chapters"
+                        :player-position="currentTime"
+                        :collapsed="!showChapters"
+                        @toggle="showChapters = !showChapters"
+                        @seek="navigate"
                     />
                 </div>
 
-                <!-- comments -->
-                <section v-if="!comments?.disabled" class="mt-6">
-                    <div class="flex items-center gap-3">
-                        <h2 class="text-lg font-bold">
+                <!-- mobile: comments teaser (opens a sheet), then recommendations -->
+                <template v-if="isMobile">
+                    <button
+                        v-if="!comments?.disabled"
+                        type="button"
+                        class="mt-4 w-full cursor-pointer card text-left hover:bg-(--surface-hover)"
+                        @click="openCommentsSheet"
+                    >
+                        <div class="flex items-center gap-2 text-sm font-semibold">
                             {{ $t("comment.comments") }}
                             <span
                                 v-if="comments?.commentCount >= 0"
-                                class="ml-1 font-normal text-muted"
+                                class="font-normal text-muted"
                                 v-text="numberFormat(comments.commentCount)"
                             />
-                        </h2>
+                            <i-fa6-solid-chevron-down class="ml-auto text-xs text-muted" />
+                        </div>
+                        <div v-if="firstComment" class="mt-2 flex items-center gap-2 text-sm">
+                            <UiAvatar :src="firstComment.thumbnail" :name="firstComment.author" :size="24" />
+                            <span class="line-clamp-2 min-w-0" v-text="plainText(firstComment.commentText)" />
+                        </div>
+                        <p v-else-if="!comments" v-t="'comment.loading'" class="mt-2 text-sm text-muted" />
+                    </button>
+                    <p v-else v-t="'comment.disabled'" class="mt-4 text-center text-sm text-muted" />
+
+                    <div class="mt-5 flex items-center">
                         <button
-                            v-t="showComments ? 'actions.minimize_comments' : 'actions.show_comments'"
+                            v-t="`actions.${showRecs ? 'minimize_recommendations' : 'show_recommendations'}`"
                             class="ml-auto btn text-muted btn-ghost"
-                            @click="toggleCommentsVisibility"
+                            @click="showRecs = !showRecs"
                         />
                     </div>
-                    <template v-if="showComments">
-                        <p v-if="!comments" v-t="'comment.loading'" class="mt-8 text-center text-muted" />
-                        <div v-else ref="commentsEl" class="mt-2">
-                            <CommentItem
-                                v-for="comment in comments.comments"
-                                :key="comment.commentId"
-                                :comment="comment"
-                                :uploader="video.uploader"
-                                :uploader-avatar-url="video.uploaderAvatar"
-                                :video-id="getVideoId()"
+                    <div v-if="showRecs" class="mt-2 grid grid-cols-1 gap-4">
+                        <ContentItem
+                            v-for="related in video.relatedStreams"
+                            :key="related.url"
+                            :item="related"
+                            :prefer-listen="isListening"
+                            height="94"
+                            width="168"
+                        />
+                    </div>
+
+                    <Teleport to="body">
+                        <Transition name="sheet">
+                            <div
+                                v-if="showCommentsSheet"
+                                data-no-swipe
+                                class="fixed inset-x-0 top-[min(56.25vw,100svh)] bottom-0 z-30 flex flex-col rounded-t-2xl border-t border-(--border) bg-(--surface) text-(--text) shadow-(--shadow)"
+                            >
+                                <div class="flex items-center gap-2 border-b border-(--border) py-2 pr-2 pl-4">
+                                    <h2 class="text-base font-bold">
+                                        {{ $t("comment.comments") }}
+                                        <span
+                                            v-if="comments?.commentCount >= 0"
+                                            class="ml-1 font-normal text-muted"
+                                            v-text="numberFormat(comments.commentCount)"
+                                        />
+                                    </h2>
+                                    <button
+                                        type="button"
+                                        class="ml-auto btn btn-icon btn-ghost"
+                                        :aria-label="$t('actions.close')"
+                                        @click="showCommentsSheet = false"
+                                    >
+                                        <i-fa6-solid-xmark />
+                                    </button>
+                                </div>
+                                <div class="flex-1 overflow-y-auto overscroll-contain px-3" @scroll="onSheetScroll">
+                                    <p v-if="!comments" v-t="'comment.loading'" class="mt-8 text-center text-muted" />
+                                    <CommentItem
+                                        v-for="comment in comments?.comments ?? []"
+                                        :key="comment.commentId"
+                                        :comment="comment"
+                                        :uploader="video.uploader"
+                                        :uploader-avatar-url="video.uploaderAvatar"
+                                        :video-id="getVideoId()"
+                                    />
+                                </div>
+                            </div>
+                        </Transition>
+                    </Teleport>
+                </template>
+
+                <!-- desktop: comments -->
+                <template v-else>
+                    <section v-if="!comments?.disabled" class="mt-6">
+                        <div class="flex items-center gap-3">
+                            <h2 class="text-lg font-bold">
+                                {{ $t("comment.comments") }}
+                                <span
+                                    v-if="comments?.commentCount >= 0"
+                                    class="ml-1 font-normal text-muted"
+                                    v-text="numberFormat(comments.commentCount)"
+                                />
+                            </h2>
+                            <button
+                                v-t="showComments ? 'actions.minimize_comments' : 'actions.show_comments'"
+                                class="ml-auto btn text-muted btn-ghost"
+                                @click="toggleCommentsVisibility"
                             />
                         </div>
-                    </template>
-                </section>
-                <p v-else v-t="'comment.disabled'" class="mt-8 text-center text-muted" />
+                        <template v-if="showComments">
+                            <p v-if="!comments" v-t="'comment.loading'" class="mt-8 text-center text-muted" />
+                            <div v-else ref="commentsEl" class="mt-2">
+                                <CommentItem
+                                    v-for="comment in comments.comments"
+                                    :key="comment.commentId"
+                                    :comment="comment"
+                                    :uploader="video.uploader"
+                                    :uploader-avatar-url="video.uploaderAvatar"
+                                    :video-id="getVideoId()"
+                                />
+                            </div>
+                        </template>
+                    </section>
+                    <p v-else v-t="'comment.disabled'" class="mt-8 text-center text-muted" />
+                </template>
             </div>
             <aside v-if="video && showDesktopSidebar" class="w-[402px] flex-none space-y-4">
                 <ChaptersBar
-                    v-if="video?.chapters?.length > 0 && showChapters"
-                    :mobile-layout="isMobile"
+                    v-if="video?.chapters?.length > 0"
+                    :mobile-layout="false"
                     :chapters="video.chapters"
                     :player-position="currentTime"
+                    :collapsed="!showChapters"
+                    @toggle="showChapters = !showChapters"
                     @seek="navigate"
                 />
                 <PlaylistVideos
@@ -370,7 +453,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onActivated, onDeactivated, onUnmounted } from "vue";
+import { ref, computed, watch, onMounted, onActivated, onDeactivated, onUnmounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import VideoPlayer from "./VideoPlayer.vue";
 import YouTubeEmbed from "./YouTubeEmbed.vue";
@@ -389,13 +472,22 @@ import UiAvatar from "./ui/Avatar.vue";
 import { parseTimeParam } from "@/utils/Misc";
 import { purifyHTML, rewriteDescription } from "@/utils/HtmlUtils";
 import { fetchJson, apiUrl } from "@/composables/useApi.js";
+import { getPreferenceBoolean, getPreferenceNumber, setPreference } from "@/composables/usePreferences.js";
+import { fetchSponsors } from "@/composables/useSponsors.js";
 import {
-    getPreferenceBoolean,
-    getPreferenceNumber,
-    getPreferenceString,
-    getPreferenceJSON,
-    setPreference,
-} from "@/composables/usePreferences.js";
+    player,
+    embed,
+    isMobileLayout,
+    SPEEDS,
+    openVideo,
+    attachPlayer,
+    setPlayerSlot,
+    detachPlayer,
+    releasePlayer,
+    closePlayer,
+    minimizePlayer,
+    setAudioMode,
+} from "@/composables/usePlayer.js";
 import { numberFormat, addCommas } from "@/composables/useFormatting.js";
 import {
     fetchSubscriptionStatus,
@@ -407,8 +499,6 @@ import { getPlaylist } from "@/composables/usePlaylists.js";
 
 const route = useRoute();
 const router = useRouter();
-
-const smallViewQuery = window.matchMedia("(max-width: 640px)");
 
 const videoPlayer = ref(null);
 const youtubeEmbed = ref(null);
@@ -429,10 +519,10 @@ const comments = ref(null);
 const subscribed = ref(false);
 const channelId = ref(null);
 const active = ref(true);
-const smallView = ref(smallViewQuery.matches);
 const showModal = ref(false);
 const showShareModal = ref(false);
-const isMobile = ref(true);
+const isMobile = isMobileLayout;
+const showCommentsSheet = ref(false);
 const currentTime = ref(0);
 const shouldShowToast = ref(false);
 let timeoutCounter = null;
@@ -470,6 +560,19 @@ const useYoutubeEmbed = computed(() => {
     return getPreferenceBoolean("youtubeNoCookieEmbed", true);
 });
 
+// The embed lives in GlobalPlayer (so it can continue in the mini player); the
+// /embed/ route and the native player still render their own player here.
+const usesGlobalPlayer = computed(() => useYoutubeEmbed.value && !isEmbed.value);
+
+const owner = { onEnded: () => onVideoEnded(), next: () => navigateNext() };
+let slotEl = null;
+
+const dragFade = computed(() =>
+    isMobile.value && player.dragOffset > 0 ? { opacity: Math.max(0.2, 1 - player.dragOffset / 300) } : null,
+);
+
+const firstComment = computed(() => comments.value?.comments?.[0]);
+
 const embedStartTime = computed(() => {
     return parseTimeParam(route.query.t) || 0;
 });
@@ -490,39 +593,15 @@ const purifiedDescription = computed(() => {
     return purifyHTML(video.value.description);
 });
 
-const youtubeVideoHref = computed(() => {
-    let link = `https://youtu.be/${getVideoId()}?t=${Math.round(currentTime.value)}`;
+const youtubeAppHref = computed(() => {
+    let link = `https://www.youtube.com/watch?v=${getVideoId()}`;
+    if (currentTime.value >= 1) link += `&t=${Math.floor(currentTime.value)}s`;
     if (playlistId.value) link += `&list=${playlistId.value}`;
     return link;
 });
 
 function fetchVideo() {
     return fetchJson(apiUrl() + "/streams/" + getVideoId());
-}
-
-async function fetchSponsors() {
-    var selectedSkip = getPreferenceString("selectedSkip", "sponsor,interaction,selfpromo,music_offtopic").split(",");
-    const skipOptions = getPreferenceJSON("skipOptions");
-    if (skipOptions !== undefined) {
-        selectedSkip = Object.keys(skipOptions).filter(k => skipOptions[k] !== undefined && skipOptions[k] !== "no");
-    }
-
-    const sponsorsData = await fetchJson(apiUrl() + "/sponsors/" + getVideoId(), {
-        category: JSON.stringify(selectedSkip),
-    });
-
-    sponsorsData?.segments?.forEach(segment => {
-        const option = skipOptions?.[segment.category];
-        segment.autoskip = option === undefined || option === "auto";
-    });
-
-    const minSegmentLength = Math.max(getPreferenceNumber("minSegmentLength", 0), 0);
-    sponsorsData.segments = sponsorsData.segments?.filter(segment => {
-        const length = segment.segment[1] - segment.segment[0];
-        return length >= minSegmentLength;
-    });
-
-    return sponsorsData;
 }
 
 function toggleCommentsVisibility() {
@@ -534,10 +613,6 @@ function toggleCommentsVisibility() {
 
 function fetchCommentsData() {
     return fetchJson(apiUrl() + "/comments/" + getVideoId());
-}
-
-function onChange() {
-    setPreference("autoplay", selectedAutoPlay.value, true);
 }
 
 async function getVideoData() {
@@ -600,7 +675,7 @@ async function fetchPlaylistPages() {
 }
 
 async function getSponsors() {
-    if (getPreferenceBoolean("sponsorblock", true)) fetchSponsors().then(data => (sponsors.value = data));
+    fetchSponsors(getVideoId()).then(data => (sponsors.value = data));
 }
 
 async function getComments() {
@@ -645,19 +720,89 @@ function handleTimestampLinks(target) {
     return false;
 }
 
-function handleScroll() {
+function loadMoreComments() {
     if (loading || !comments.value || !comments.value.nextpage) return;
-    if (window.innerHeight + window.scrollY >= commentsEl.value?.offsetHeight - window.innerHeight) {
-        loading = true;
-        fetchJson(apiUrl() + "/nextpage/comments/" + getVideoId(), {
-            nextpage: comments.value.nextpage,
-        }).then(json => {
+    loading = true;
+    fetchJson(apiUrl() + "/nextpage/comments/" + getVideoId(), {
+        nextpage: comments.value.nextpage,
+    })
+        .then(json => {
             comments.value.nextpage = json.nextpage;
-            loading = false;
             comments.value.comments = comments.value.comments.concat(json.comments);
-        });
-    }
+        })
+        .finally(() => (loading = false));
 }
+
+function handleScroll() {
+    // On phones comments live in the sheet, which loads more on its own scroll.
+    if (isMobile.value || !commentsEl.value) return;
+    if (window.innerHeight + window.scrollY >= commentsEl.value.offsetHeight - window.innerHeight) loadMoreComments();
+}
+
+function onSheetScroll(event) {
+    const el = event.target;
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 800) loadMoreComments();
+}
+
+function openCommentsSheet() {
+    showCommentsSheet.value = true;
+    if (comments.value === null) getComments();
+}
+
+function plainText(html) {
+    return new DOMParser().parseFromString(html ?? "", "text/html").body.textContent;
+}
+
+function toggleTheaterMode() {
+    theaterMode.value = !theaterMode.value;
+    setPreference("theaterMode", theaterMode.value);
+}
+
+function setSlot(el) {
+    slotEl = el;
+    setPlayerSlot(owner, el);
+}
+
+// Hands the shared player this page's video and placeholder.
+function takePlayer() {
+    if (isEmbed.value) return;
+    if (!usesGlobalPlayer.value) {
+        closePlayer();
+        return;
+    }
+    // The "Audio only" preference (or ?listen=1) opens new videos in the audio player.
+    if (isListening.value && player.videoId !== getVideoId()) player.audioMode = true;
+    openVideo({ videoId: getVideoId(), startTime: embedStartTime.value, watchUrl: route.fullPath });
+    attachPlayer(owner, slotEl);
+    syncPlayer();
+}
+
+function syncPlayer() {
+    if (player.owner !== owner) return;
+    // The route is global: while cached in <keep-alive> it may be another page's.
+    if (getVideoId() === player.videoId) player.watchUrl = route.fullPath;
+    player.loop = selectedAutoLoop.value;
+    player.sponsors = sponsors.value;
+    if (video.value && !video.value.error) {
+        player.title = video.value.title;
+        player.uploader = video.value.uploader;
+        player.thumbnail = video.value.thumbnailUrl;
+        player.related = video.value.relatedStreams ?? [];
+        player.streams = video.value;
+    }
+    player.playlist = playlist.value?.relatedStreams
+        ? { id: playlistId.value, items: playlist.value.relatedStreams, index: index.value }
+        : null;
+}
+
+watch([selectedAutoLoop, sponsors, video, playlist, index, () => route.fullPath], syncPlayer);
+
+watch(
+    () => player.currentTime,
+    time => {
+        if (player.owner === owner) currentTime.value = time;
+    },
+);
 
 function getVideoId() {
     if (route.query.video_ids) {
@@ -670,7 +815,8 @@ function getVideoId() {
 }
 
 function navigate(time) {
-    if (useYoutubeEmbed.value) youtubeEmbed.value?.seek(time);
+    if (usesGlobalPlayer.value) embed.value?.seek(time);
+    else if (useYoutubeEmbed.value) youtubeEmbed.value?.seek(time);
     else videoPlayer.value?.seek(time);
 }
 
@@ -740,7 +886,7 @@ function navigateNext() {
                 break;
         }
     const fullScreen = useYoutubeEmbed.value
-        ? (youtubeEmbed.value?.isFullScreenEnabled?.() ?? Boolean(document.fullscreenElement))
+        ? Boolean(document.fullscreenElement)
         : videoPlayer.value?.isFullScreenEnabled?.();
     searchParams.set("fullscreen", fullScreen);
     const paramStr = searchParams.toString();
@@ -765,10 +911,6 @@ function downloadCurrentFrame() {
 }
 
 onMounted(() => {
-    isMobile.value = window.innerWidth < 1024;
-    window.addEventListener("resize", () => {
-        isMobile.value = window.innerWidth < 1024;
-    });
     getVideoData().then(() => {
         (async () => {
             const videoId = getVideoId();
@@ -804,9 +946,6 @@ onMounted(() => {
     if (!isEmbed.value && showComments.value) getComments();
     if (isEmbed.value) document.querySelector("html").style.overflow = "hidden";
     window.addEventListener("click", handleClick);
-    window.addEventListener("resize", () => {
-        smallView.value = smallViewQuery.matches;
-    });
 });
 
 onActivated(() => {
@@ -822,22 +961,35 @@ onActivated(() => {
         if (!useYoutubeEmbed.value && videoPlayer.value) videoPlayer.value.loadVideo();
     }
     window.addEventListener("scroll", handleScroll);
+    takePlayer();
 });
 
 onDeactivated(() => {
     active.value = false;
     window.removeEventListener("scroll", handleScroll);
     dismiss();
+    showCommentsSheet.value = false;
+    detachPlayer(owner);
 });
 
 onUnmounted(() => {
     window.removeEventListener("scroll", handleScroll);
     window.removeEventListener("click", handleClick);
     dismiss();
+    releasePlayer(owner);
 });
 </script>
 
 <style>
+.sheet-enter-active,
+.sheet-leave-active {
+    transition: transform 0.25s ease;
+}
+.sheet-enter-from,
+.sheet-leave-to {
+    transform: translateY(100%);
+}
+
 .v-enter-from,
 .v-leave-to {
     opacity: 0;

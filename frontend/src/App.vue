@@ -1,6 +1,14 @@
 <template>
-    <div class="flex min-h-screen w-full flex-col bg-(--surface) text-(--text) antialiased" :class="[theme]">
-        <NavBar />
+    <div
+        class="flex min-h-screen w-full flex-col overflow-x-clip bg-(--surface) text-(--text) antialiased"
+        :class="[
+            theme,
+            miniPlayerShown
+                ? 'max-lg:pb-[calc(7.5rem+var(--bottom-inset))]'
+                : 'max-lg:pb-[calc(3.5rem+var(--bottom-inset))]',
+        ]"
+    >
+        <NavBar :class="{ 'max-lg:hidden': fullPlayerShown }" />
         <div class="mx-auto w-full max-w-[1800px] flex-1 px-3 pt-4 sm:px-6">
             <router-view v-slot="{ Component }">
                 <keep-alive :max="5">
@@ -10,13 +18,19 @@
         </div>
 
         <FooterComponent />
+        <GlobalPlayer />
+        <BottomNav v-if="!fullPlayerShown" />
     </div>
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import NavBar from "./components/NavBar.vue";
 import FooterComponent from "./components/FooterComponent.vue";
+import GlobalPlayer from "./components/GlobalPlayer.vue";
+import BottomNav from "./components/BottomNav.vue";
+import { player, isMobileLayout } from "@/composables/usePlayer.js";
+import { trackBottomInset } from "@/composables/useBottomInset.js";
 import { testLocalStorage, usePreferenceString } from "@/composables/usePreferences.js";
 import { getDefaultLanguage, TimeAgo, TimeAgoConfig } from "@/composables/useFormatting.js";
 import { fetchSubscriptions } from "@/composables/useSubscriptions.js";
@@ -27,6 +41,10 @@ const darkModePreference = window.matchMedia("(prefers-color-scheme: dark)");
 const themePreference = usePreferenceString("theme", "dark");
 const localePreference = usePreferenceString("hl", "en");
 const theme = ref("dark");
+
+// On phones the watch page is full-bleed like the YouTube app: no top or bottom bar.
+const fullPlayerShown = computed(() => Boolean(player.videoId) && player.mode === "full" && isMobileLayout.value);
+const miniPlayerShown = computed(() => Boolean(player.videoId) && player.mode === "mini");
 
 function setTheme() {
     const themes = {
@@ -85,6 +103,7 @@ watch(
 
 onMounted(() => {
     darkModePreference.addEventListener("change", handlePreferredColorSchemeChange);
+    trackBottomInset();
 
     if ("indexedDB" in window) {
         const request = indexedDB.open("piped-db", 6);
@@ -117,7 +136,8 @@ onMounted(() => {
             }
             // migration to fix an invalid previous length of channel ids: 11 -> 24
             (async () => {
-                if (ev.oldVersion < 6) {
+                // A fresh database has no groups to fix (and window.db isn't set yet).
+                if (ev.oldVersion > 0 && ev.oldVersion < 6) {
                     const subscriptions = await fetchSubscriptions();
                     const channelGroups = await getChannelGroups();
                     for (let group of channelGroups) {

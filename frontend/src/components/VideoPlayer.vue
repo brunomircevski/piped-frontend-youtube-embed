@@ -74,7 +74,6 @@ import {
     getPreferenceString,
     setPreference,
 } from "@/composables/usePreferences.js";
-const shakaImport = import("shaka-player/dist/shaka-player.ui.js");
 const hotkeysImport = import("hotkeys-js");
 
 const route = useRoute();
@@ -761,7 +760,12 @@ function destroy(hotkeys) {
 }
 
 onMounted(() => {
-    if (!shakaLib) shakaPromise = shakaImport.then(shaka => shaka.default).then(shaka => (shakaLib = shaka));
+    // Loaded on first mount, not on import: the watch page imports this player
+    // even when the YouTube embed is used instead.
+    if (!shakaLib)
+        shakaPromise = import("shaka-player/dist/shaka-player.ui.js")
+            .then(shaka => shaka.default)
+            .then(shaka => (shakaLib = shaka));
     if (!hotkeysLib) hotkeysPromise = hotkeysImport.then(mod => mod.default).then(hk => (hotkeysLib = hk));
 });
 

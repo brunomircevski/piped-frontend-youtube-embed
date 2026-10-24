@@ -1,103 +1,73 @@
 <template>
-    <div class="block w-full max-w-full">
-        <div
-            class="relative overflow-hidden bg-black"
-            :class="isEmbed ? 'size-full' : 'aspect-video max-h-[75vh] w-full sm:rounded-xl'"
-        >
-            <iframe
-                ref="iframeEl"
-                class="block size-full border-0"
-                :src="iframeSrc"
-                title="YouTube video player"
-                :allow="IFRAME_ALLOW"
-                referrerpolicy="strict-origin-when-cross-origin"
-                allowfullscreen
-                @load="onIframeLoad"
-            />
+    <div class="relative size-full overflow-hidden bg-black">
+        <iframe
+            ref="iframeEl"
+            class="block size-full border-0"
+            :src="iframeSrc"
+            title="YouTube video player"
+            :allow="IFRAME_ALLOW"
+            referrerpolicy="strict-origin-when-cross-origin"
+            allowfullscreen
+            @load="onIframeLoad"
+        />
 
-            <!-- SponsorBlock: manual skip / "skipped" notice -->
-            <Transition name="fade">
+        <!-- SponsorBlock: manual skip / "skipped" notice -->
+        <Transition name="fade">
+            <button
+                v-if="manualSegment"
+                type="button"
+                class="absolute right-3 bottom-16 flex items-center gap-2 rounded-full bg-black/75 px-4 py-2 text-sm font-medium text-white ring-1 ring-white/30 backdrop-blur-sm hover:bg-black/90"
+                @click="skipSegment(manualSegment)"
+            >
+                {{ $t("actions.skip_segment") }}
+                <span class="opacity-70">· {{ categoryLabel(manualSegment.category) }}</span>
+                <i-fa6-solid-forward-step />
+            </button>
+            <div
+                v-else-if="skippedNotice"
+                class="absolute right-3 bottom-16 flex items-center gap-3 rounded-full bg-black/75 py-1.5 pr-1.5 pl-4 text-sm text-white ring-1 ring-white/20 backdrop-blur-sm"
+            >
+                <span>{{ $t("info.skipped") }} {{ categoryLabel(skippedNotice.category).toLowerCase() }}</span>
                 <button
-                    v-if="manualSegment"
+                    v-t="'player.undo'"
                     type="button"
-                    class="absolute right-3 bottom-16 flex items-center gap-2 rounded-full bg-black/75 px-4 py-2 text-sm font-medium text-white ring-1 ring-white/30 backdrop-blur-sm hover:bg-black/90"
-                    @click="skipSegment(manualSegment)"
-                >
-                    {{ $t("actions.skip_segment") }}
-                    <span class="opacity-70">· {{ categoryLabel(manualSegment.category) }}</span>
-                    <i-fa6-solid-forward-step />
-                </button>
-                <div
-                    v-else-if="skippedNotice"
-                    class="absolute right-3 bottom-16 flex items-center gap-3 rounded-full bg-black/75 py-1.5 pr-1.5 pl-4 text-sm text-white ring-1 ring-white/20 backdrop-blur-sm"
-                >
-                    <span>{{ $t("info.skipped") }} {{ categoryLabel(skippedNotice.category).toLowerCase() }}</span>
-                    <button
-                        v-t="'player.undo'"
-                        type="button"
-                        class="rounded-full bg-white/15 px-3 py-1 font-medium hover:bg-white/25"
-                        @click="undoSkip"
-                    />
-                </div>
-            </Transition>
-        </div>
-
-        <div v-if="!isEmbed" class="mt-2 flex flex-wrap items-center justify-end gap-2 max-sm:px-3">
-            <span v-t="'actions.playback_speed'" class="text-sm text-muted max-sm:hidden" />
-            <div class="segmented" role="group" :aria-label="$t('actions.playback_speed')">
-                <button
-                    v-for="rate in speeds"
-                    :key="rate"
-                    type="button"
-                    :aria-pressed="currentRate === rate"
-                    @click="setPlaybackSpeed(rate)"
-                    v-text="`${rate}×`"
+                    class="rounded-full bg-white/15 px-3 py-1 font-medium hover:bg-white/25"
+                    @click="undoSkip"
                 />
             </div>
-        </div>
+        </Transition>
     </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount, onActivated, onDeactivated } from "vue";
+import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import { getPreferenceBoolean, getPreferenceString } from "@/composables/usePreferences.js";
+import { SPEEDS } from "@/composables/usePlayer.js";
+import {
+    MIN_RATE,
+    MAX_RATE,
+    readStoredSpeed,
+    writeStoredSpeed,
+    getStartSeconds,
+    saveWatchProgress,
+    categoryLabel,
+} from "@/composables/usePlayback.js";
 
-const emit = defineEmits(["timeupdate", "ended"]);
+const emit = defineEmits(["timeupdate", "ended", "ratechange", "playingchange"]);
 
 const IFRAME_ALLOW =
     "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen; web-share";
 
-const STORAGE_SPEED_KEY = "playbackRate";
-const STORAGE_PROGRESS_KEY = "watchProgress";
-// The embed API clamps anything above 2x, so faster buttons would be lies.
-const SPEEDS = [1, 1.25, 1.5, 1.75, 2];
-const MIN_SAVE_SECONDS = 10;
-const MAX_PROGRESS_RATIO = 0.9;
-const MAX_PROGRESS_ENTRIES = 500;
+// After setPlaybackRate the player keeps reporting the old rate for a moment.
+const RATE_SETTLE_MS = 2000;
 const PROGRESS_SAVE_MS = 5000;
 const SEEK_SMALL = 5;
 const SEEK_LARGE = 10;
-// How long after the page is hidden a pause is treated as YouTube's own
-// "not backgroundable" pause rather than the user pressing pause.
-const BACKGROUND_RESUME_WINDOW_MS = 6000;
-const MAX_BACKGROUND_RESUMES = 5;
 
 // YT.PlayerState
 const ENDED = 0;
 const PLAYING = 1;
-const PAUSED = 2;
 const BUFFERING = 3;
-
-const CATEGORY_LABELS = {
-    sponsor: "Sponsor",
-    selfpromo: "Self-promotion",
-    interaction: "Interaction reminder",
-    intro: "Intro",
-    outro: "Outro",
-    preview: "Preview",
-    music_offtopic: "Non-music section",
-    filler: "Filler",
-};
 
 const props = defineProps({
     videoId: {
@@ -114,11 +84,19 @@ const props = defineProps({
         default: null,
     },
     loop: Boolean,
-    isEmbed: Boolean,
+    // null: follow the "autoplay video" preference
+    autoplay: {
+        type: Boolean,
+        default: null,
+    },
+    // Handle keyboard shortcuts (off while minimized, so pages keep their keys)
+    keyboard: {
+        type: Boolean,
+        default: true,
+    },
 });
 
 const iframeEl = ref(null);
-const speeds = SPEEDS;
 const currentRate = ref(readStoredSpeed());
 const manualSegment = ref(null);
 const skippedNotice = ref(null);
@@ -128,56 +106,18 @@ let duration = 0;
 let playerState = -1;
 let isMuted = false;
 let rateApplied = false;
+let pendingRate = null;
+let pendingRateAt = 0;
 let lastSave = 0;
-let hiddenAt = 0;
-let playingWhenHidden = false;
-let backgroundResumes = 0;
 let skippedNoticeTimer = null;
 let readyTimers = [];
 
 // Resolved once, so a re-render never reloads the iframe.
-const initialStart = getStartSeconds(props.videoId);
-
-function readJSON(key) {
-    try {
-        const raw = localStorage.getItem(key);
-        return raw ? JSON.parse(raw) : null;
-    } catch {
-        return null;
-    }
-}
-
-function writeJSON(key, value) {
-    try {
-        localStorage.setItem(key, JSON.stringify(value));
-    } catch {
-        /* ignore quota / disabled storage */
-    }
-}
-
-function readStoredSpeed() {
-    try {
-        const n = Number(localStorage.getItem(STORAGE_SPEED_KEY) ?? 1);
-        return SPEEDS.includes(n) ? n : 1;
-    } catch {
-        return 1;
-    }
-}
-
-function isRestorableProgress(time, total) {
-    return total > 0 && time >= MIN_SAVE_SECONDS && time < total * MAX_PROGRESS_RATIO;
-}
-
-function getStartSeconds(videoId) {
-    if (props.startTime > 0) return Math.floor(props.startTime);
-    const entry = (readJSON(STORAGE_PROGRESS_KEY) || {})[videoId];
-    if (entry && isRestorableProgress(entry.currentTime, entry.duration)) return Math.floor(entry.currentTime);
-    return 0;
-}
+const initialStart = getStartSeconds(props.videoId, props.startTime);
 
 function buildEmbedSrc(videoId, startSeconds) {
     const params = new URLSearchParams({
-        autoplay: getPreferenceBoolean("playerAutoPlay", true) ? "1" : "0",
+        autoplay: (props.autoplay ?? getPreferenceBoolean("playerAutoPlay", true)) ? "1" : "0",
         enablejsapi: "1",
         origin: location.origin,
         widget_referrer: location.origin,
@@ -209,55 +149,27 @@ function startListening() {
 
 // ---- Watch progress -------------------------------------------------------
 
-function saveWatchProgress(videoId, time, total) {
-    if (!videoId || !(total > 0)) return;
-    const all = readJSON(STORAGE_PROGRESS_KEY) || {};
-
-    if (isRestorableProgress(time, total)) {
-        all[videoId] = { currentTime: Math.floor(time), duration: Math.floor(total), updatedAt: Date.now() };
-        const ids = Object.keys(all);
-        if (ids.length > MAX_PROGRESS_ENTRIES) {
-            ids.sort((a, b) => (all[a].updatedAt ?? 0) - (all[b].updatedAt ?? 0));
-            ids.slice(0, ids.length - MAX_PROGRESS_ENTRIES).forEach(id => delete all[id]);
-        }
-    } else {
-        delete all[videoId];
-    }
-    writeJSON(STORAGE_PROGRESS_KEY, all);
-    updateHistoryDatabase(videoId, time);
-}
-
-// Keeps Piped's watch history (thumbnail progress bars) in sync, like the native player.
-function updateHistoryDatabase(videoId, time) {
-    if (!window.db) return;
-    try {
-        const store = window.db.transaction("watch_history", "readwrite").objectStore("watch_history");
-        const request = store.get(videoId);
-        request.onsuccess = event => {
-            const entry = event.target.result;
-            if (!entry) return;
-            entry.currentTime = time;
-            store.put(entry);
-        };
-    } catch {
-        /* history disabled or db unavailable */
-    }
-}
-
 function flushProgress() {
     if (duration > 0) saveWatchProgress(props.videoId, currentTime, duration);
 }
 
 // ---- Controls -------------------------------------------------------------
 
-function setPlaybackSpeed(rate) {
-    try {
-        localStorage.setItem(STORAGE_SPEED_KEY, String(rate));
-    } catch {
-        /* ignore */
-    }
+function storeSpeed(rate) {
+    writeStoredSpeed(rate);
     currentRate.value = rate;
+    emit("ratechange", rate);
+}
+
+function applyRate(rate) {
+    pendingRate = rate;
+    pendingRateAt = Date.now();
     postCommand("setPlaybackRate", [rate]);
+}
+
+function setPlaybackSpeed(rate) {
+    storeSpeed(rate);
+    applyRate(rate);
 }
 
 function seek(time, exact = false) {
@@ -275,8 +187,12 @@ function play() {
     postCommand("playVideo");
 }
 
+function pause() {
+    postCommand("pauseVideo");
+}
+
 function togglePlayPause() {
-    if (playerState === PLAYING || playerState === BUFFERING) postCommand("pauseVideo");
+    if (playerState === PLAYING || playerState === BUFFERING) pause();
     else play();
 }
 
@@ -291,8 +207,10 @@ function toggleFullscreen() {
 }
 
 function changeSpeed(direction) {
-    const index = SPEEDS.indexOf(currentRate.value);
-    const next = SPEEDS[Math.min(Math.max(index + direction, 0), SPEEDS.length - 1)];
+    const next =
+        direction > 0
+            ? SPEEDS.find(rate => rate > currentRate.value)
+            : SPEEDS.findLast(rate => rate < currentRate.value);
     if (next !== undefined) setPlaybackSpeed(next);
 }
 
@@ -301,10 +219,6 @@ function isFullScreenEnabled() {
 }
 
 // ---- SponsorBlock ---------------------------------------------------------
-
-function categoryLabel(category) {
-    return CATEGORY_LABELS[category] ?? category;
-}
 
 function findSegment(time) {
     return props.sponsors?.segments?.find(s => time >= s.segment[0] && time < s.segment[1] - 0.5);
@@ -382,27 +296,12 @@ function onStateChange(state) {
     const previous = playerState;
     playerState = state;
 
-    if (state === PLAYING) {
-        if (!rateApplied) {
-            rateApplied = true;
-            if (currentRate.value !== 1) postCommand("setPlaybackRate", [currentRate.value]);
-        }
+    if (state === PLAYING && !rateApplied) {
+        // The last used speed carries over to every new video.
+        rateApplied = true;
+        if (currentRate.value !== 1) applyRate(currentRate.value);
     }
-
-    // Mobile YouTube pauses non-Premium playback when the page is hidden. If that
-    // happens right after the screen turns off / the app is switched, resume it.
-    if (
-        state === PAUSED &&
-        previous !== PAUSED &&
-        document.hidden &&
-        playingWhenHidden &&
-        Date.now() - hiddenAt < BACKGROUND_RESUME_WINDOW_MS &&
-        backgroundResumes < MAX_BACKGROUND_RESUMES &&
-        getPreferenceBoolean("embedBackgroundPlayback", true)
-    ) {
-        backgroundResumes++;
-        play();
-    }
+    emit("playingchange", state === PLAYING || state === BUFFERING);
 
     if (state === ENDED && previous !== ENDED) {
         if (duration > 0) saveWatchProgress(props.videoId, duration, duration);
@@ -417,10 +316,7 @@ function onStateChange(state) {
 function onInfo(info) {
     if (typeof info.duration === "number" && info.duration > 0) duration = info.duration;
     if (typeof info.muted === "boolean") isMuted = info.muted;
-    if (typeof info.playbackRate === "number" && rateApplied && SPEEDS.includes(info.playbackRate)) {
-        // Follow speed changes made from YouTube's own settings menu.
-        currentRate.value = info.playbackRate;
-    }
+    if (typeof info.playbackRate === "number" && rateApplied) onRateInfo(info.playbackRate);
     if (typeof info.playerState === "number" && info.playerState !== playerState) onStateChange(info.playerState);
 
     if (typeof info.currentTime === "number") {
@@ -432,6 +328,15 @@ function onInfo(info) {
             saveWatchProgress(props.videoId, currentTime, duration);
         }
     }
+}
+
+function onRateInfo(rate) {
+    if (pendingRate !== null) {
+        if (rate !== pendingRate && Date.now() - pendingRateAt < RATE_SETTLE_MS) return;
+        pendingRate = null;
+    }
+    // Remember speed changes made from YouTube's own settings menu too.
+    if (rate !== currentRate.value && rate >= MIN_RATE && rate <= MAX_RATE) storeSpeed(rate);
 }
 
 function onMessage(event) {
@@ -459,13 +364,8 @@ function onMessage(event) {
 }
 
 function onReady() {
-    // A video opened while the page is hidden (autoplay-next with the screen off)
-    // may not start by itself.
-    if (document.hidden && getPreferenceBoolean("playerAutoPlay", true)) {
-        playingWhenHidden = true;
-        hiddenAt = Date.now();
-        play();
-    }
+    // A video opened while the page is hidden (autoplay-next) may not start by itself.
+    if (document.hidden && getPreferenceBoolean("playerAutoPlay", true)) play();
 }
 
 function clearReadyTimers() {
@@ -481,30 +381,22 @@ function onIframeLoad() {
 }
 
 function onVisibilityChange() {
-    if (document.hidden) {
-        hiddenAt = Date.now();
-        playingWhenHidden = playerState === PLAYING || playerState === BUFFERING;
-        backgroundResumes = 0;
-        flushProgress();
-    } else {
-        hiddenAt = 0;
-        playingWhenHidden = false;
-    }
+    if (document.hidden) flushProgress();
 }
 
+watch(
+    () => props.keyboard,
+    enabled => {
+        if (enabled) document.addEventListener("keydown", onKeyDown);
+        else document.removeEventListener("keydown", onKeyDown);
+    },
+    { immediate: true },
+);
+
 onMounted(() => {
-    // Also attached in onActivated; the browser ignores the duplicate.
-    document.addEventListener("keydown", onKeyDown);
     window.addEventListener("message", onMessage);
     document.addEventListener("visibilitychange", onVisibilityChange);
     window.addEventListener("pagehide", flushProgress);
-});
-
-// Inside <keep-alive> a cached watch page must not react to keys.
-onActivated(() => document.addEventListener("keydown", onKeyDown));
-onDeactivated(() => {
-    flushProgress();
-    document.removeEventListener("keydown", onKeyDown);
 });
 
 onBeforeUnmount(() => {
@@ -520,6 +412,10 @@ onBeforeUnmount(() => {
 defineExpose({
     seek,
     play,
+    pause,
+    togglePlayPause,
+    setPlaybackSpeed,
+    currentRate,
     isFullScreenEnabled,
 });
 </script>
