@@ -112,6 +112,8 @@ const SWIPE_MINIMIZE_PX = 110;
 
 const rootEl = ref(null);
 const rect = ref(null);
+// Touch devices only: a narrow, wide desktop window is "landscape" too.
+const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
 const landscapeQuery = window.matchMedia("(orientation: landscape)");
 const isLandscape = ref(landscapeQuery.matches);
 landscapeQuery.addEventListener("change", e => (isLandscape.value = e.matches));
@@ -124,7 +126,13 @@ const isFull = computed(() => player.mode === "full");
 // Turning a phone sideways on the watch page fills the screen with the video,
 // like the YouTube app.
 const immersive = computed(
-    () => Boolean(player.videoId) && isFull.value && isMobileLayout.value && isLandscape.value && !player.audioMode,
+    () =>
+        Boolean(player.videoId) &&
+        isFull.value &&
+        coarsePointer &&
+        isMobileLayout.value &&
+        isLandscape.value &&
+        !player.audioMode,
 );
 
 const layoutClass = computed(() => {
@@ -163,7 +171,6 @@ watchEffect(() => (embed.value = player.audioMode ? audioRef.value : videoRef.va
 
 // Phones: YouTube's embed stops when the screen turns off, so hand over to the
 // audio player then, and back to the video when the page is visible again.
-const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
 const autoAudioPreference = usePreferenceBoolean("autoAudioWhenHidden", true);
 const autoAudio = computed(() => coarsePointer && autoAudioPreference.value);
 let switchedForHidden = false;

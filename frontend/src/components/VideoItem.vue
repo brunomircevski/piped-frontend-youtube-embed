@@ -48,7 +48,7 @@
             </div>
         </router-link>
 
-        <div class="flex items-start gap-3 pt-1.5">
+        <div class="relative flex items-start gap-3 pt-1.5">
             <router-link :to="item.uploaderUrl">
                 <img
                     v-if="item.uploaderAvatar"
@@ -63,7 +63,7 @@
             <div class="min-w-0 flex-1">
                 <router-link
                     v-if="item.uploaderUrl && item.uploaderName && !hideChannel"
-                    class="inline-flex max-w-full items-center gap-1 text-sm text-muted hover:text-(--text)"
+                    class="flex max-w-full items-center gap-1 text-sm text-muted hover:text-(--text)"
                     :to="item.uploaderUrl"
                     :title="item.uploaderName"
                 >
@@ -71,14 +71,11 @@
                     <i-fa6-solid-circle-check v-if="item.uploaderVerified" class="shrink-0 text-xs" />
                 </router-link>
 
-                <div
-                    v-if="item.views >= 0 || item.uploadedDate"
-                    class="flex flex-wrap items-center gap-x-1 text-sm text-muted"
-                >
+                <div v-if="item.views >= 0 || item.uploadedDate" class="truncate text-sm text-muted">
                     <span
                         v-if="item.views >= 0"
                         v-t="{ path: 'video.views', args: { views: numberFormat(item.views) } }"
-                        class="after:ml-1 after:content-['•']"
+                        class="after:mx-1 after:content-['•']"
                     />
                     <span
                         v-if="item.uploaded > 0"
@@ -90,7 +87,7 @@
             </div>
 
             <div
-                class="flex shrink-0 items-center gap-0.5 text-sm text-muted transition-opacity *:flex *:size-8 *:items-center *:justify-center *:rounded-full *:hover:bg-(--surface-muted) *:hover:text-(--text) [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:focus-within:opacity-100"
+                class="flex shrink-0 items-center gap-0.5 text-sm text-muted transition-opacity *:flex *:size-8 *:items-center *:justify-center *:rounded-full *:hover:bg-(--surface-muted) *:hover:text-(--text) [@media(hover:hover)]:absolute [@media(hover:hover)]:top-1 [@media(hover:hover)]:right-0 [@media(hover:hover)]:rounded-full [@media(hover:hover)]:bg-(--surface) [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:shadow-sm [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:focus-within:opacity-100"
             >
                 <router-link
                     :to="{

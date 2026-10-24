@@ -258,8 +258,9 @@
 
 @utility video-grid {
     display: grid;
-    gap: 1.75rem 1rem;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+    gap: 1.5rem 1rem;
+    /* at most five per row */
+    grid-template-columns: repeat(auto-fill, minmax(max(min(100%, 15rem), calc((100% - 4rem) / 5)), 1fr));
 }
 
 @utility page-title {
