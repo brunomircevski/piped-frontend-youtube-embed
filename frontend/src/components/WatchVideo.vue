@@ -19,7 +19,7 @@
             :is-embed="isEmbed"
         />
     </div>
-    <div id="theaterModeSpot" class="mb-1"></div>
+    <div id="theaterModeSpot" class="mb-1 has-[>*]:mb-6"></div>
     <LoadingIndicatorPage :show-content="video != null && !isEmbed" class="w-full">
         <ErrorHandler v-if="video && video.error" :message="video.message" :error="video.error" />
         <Transition>
@@ -211,10 +211,12 @@
                         <span v-t="'actions.playback_speed'" class="text-muted max-lg:hidden" />
                         <div class="segmented h-full" role="group" :aria-label="$t('actions.playback_speed')">
                             <button
-                                v-for="rate in SPEEDS"
+                                v-for="rate in player.audioMode ? SPEEDS : EMBED_SPEEDS"
                                 :key="rate"
                                 type="button"
-                                :aria-pressed="player.rate === rate"
+                                :aria-pressed="
+                                    (player.audioMode ? player.rate : Math.min(player.rate, EMBED_MAX_RATE)) === rate
+                                "
                                 @click="embed?.setPlaybackSpeed(rate)"
                                 v-text="`${rate}×`"
                             />
@@ -238,7 +240,7 @@
                         />
                     </div>
                     <div
-                        v-for="metaInfo in video?.metaInfo ?? []"
+                        v-for="metaInfo in showDesc ? (video?.metaInfo ?? []) : []"
                         :key="metaInfo.title"
                         class="mt-2 rounded-lg bg-(--surface) px-3 py-2"
                     >
@@ -254,7 +256,7 @@
                     <!-- eslint-disable vue/no-v-html -->
                     <div
                         class="mt-2 leading-relaxed wrap-break-word whitespace-pre-line [&_a]:text-sky-600 dark:[&_a]:text-sky-400"
-                        :class="{ 'line-clamp-3': !showDesc }"
+                        :class="{ 'line-clamp-1': !showDesc }"
                         v-html="purifiedDescription"
                     />
                     <!-- eslint-enable vue/no-v-html -->
@@ -479,6 +481,8 @@ import {
     embed,
     isMobileLayout,
     SPEEDS,
+    EMBED_SPEEDS,
+    EMBED_MAX_RATE,
     openVideo,
     attachPlayer,
     setPlayerSlot,

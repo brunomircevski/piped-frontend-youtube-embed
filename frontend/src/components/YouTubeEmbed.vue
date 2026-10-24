@@ -42,7 +42,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import { getPreferenceBoolean, getPreferenceString } from "@/composables/usePreferences.js";
-import { SPEEDS } from "@/composables/usePlayer.js";
+import { EMBED_MAX_RATE, EMBED_SPEEDS } from "@/composables/usePlayer.js";
 import {
     MIN_RATE,
     MAX_RATE,
@@ -162,6 +162,7 @@ function storeSpeed(rate) {
 }
 
 function applyRate(rate) {
+    rate = Math.min(rate, EMBED_MAX_RATE);
     pendingRate = rate;
     pendingRateAt = Date.now();
     postCommand("setPlaybackRate", [rate]);
@@ -207,10 +208,9 @@ function toggleFullscreen() {
 }
 
 function changeSpeed(direction) {
+    const current = Math.min(currentRate.value, EMBED_MAX_RATE);
     const next =
-        direction > 0
-            ? SPEEDS.find(rate => rate > currentRate.value)
-            : SPEEDS.findLast(rate => rate < currentRate.value);
+        direction > 0 ? EMBED_SPEEDS.find(rate => rate > current) : EMBED_SPEEDS.findLast(rate => rate < current);
     if (next !== undefined) setPlaybackSpeed(next);
 }
 
@@ -335,6 +335,8 @@ function onRateInfo(rate) {
         if (rate !== pendingRate && Date.now() - pendingRateAt < RATE_SETTLE_MS) return;
         pendingRate = null;
     }
+    // A faster speed saved in audio mode plays at the embed's maximum but stays saved.
+    if (rate === EMBED_MAX_RATE && currentRate.value > EMBED_MAX_RATE) return;
     // Remember speed changes made from YouTube's own settings menu too.
     if (rate !== currentRate.value && rate >= MIN_RATE && rate <= MAX_RATE) storeSpeed(rate);
 }
