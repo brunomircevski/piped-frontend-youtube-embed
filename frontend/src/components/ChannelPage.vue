@@ -50,11 +50,12 @@
             </div>
         </div>
 
-        <div class="mt-5 flex items-center gap-1 border-b border-(--border)">
+        <!-- scrolls sideways on phones; the inset shadow is the underline, so tabs need no -mb-px -->
+        <div class="mt-5 flex scrollbar-none items-center gap-1 overflow-x-auto shadow-[inset_0_-1px_0_var(--border)]">
             <button
                 v-for="(tab, index) in tabs"
                 :key="tab.name"
-                class="-mb-px cursor-pointer border-b-2 px-4 py-2.5 text-sm font-semibold transition-colors"
+                class="shrink-0 cursor-pointer border-b-2 px-4 py-2.5 text-sm font-semibold transition-colors"
                 :class="
                     selectedTab == index
                         ? 'border-(--text) text-(--text)'
@@ -66,7 +67,7 @@
             </button>
             <router-link
                 :to="`/playlist?list=UU${channel.id.substring(2)}`"
-                class="mb-1 ml-auto btn text-muted btn-ghost"
+                class="mb-1 ml-auto btn shrink-0 text-muted btn-ghost"
             >
                 <i-fa6-solid-play class="text-xs" />
                 <span v-t="'actions.play_all'" />

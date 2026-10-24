@@ -16,11 +16,12 @@
             </template>
             <PreferenceSwitch id="chkYoutubeNoCookieEmbed" v-model="youtubeNoCookieEmbed" @change="onChange" />
         </PreferenceRow>
-        <PreferenceRow v-if="youtubeNoCookieEmbed" for-id="chkEmbedBackgroundPlayback">
+        <p v-t="'info.native_player_quality'" class="pref-note" />
+        <PreferenceRow v-if="youtubeNoCookieEmbed" for-id="chkAutoAudioWhenHidden">
             <template #label>
-                <strong v-t="'actions.embed_background_playback'" />
+                <strong v-t="'actions.auto_audio_when_hidden'" />
             </template>
-            <PreferenceSwitch id="chkEmbedBackgroundPlayback" v-model="embedBackgroundPlayback" @change="onChange" />
+            <PreferenceSwitch id="chkAutoAudioWhenHidden" v-model="autoAudioWhenHidden" @change="onChange" />
         </PreferenceRow>
         <label for="ddlTheme" class="pref-row">
             <strong v-t="'actions.theme'" />
@@ -73,6 +74,14 @@
             </template>
             <PreferenceSwitch id="chkAutoDisplayCaptions" v-model="autoDisplayCaptions" @change="onChange" />
         </PreferenceRow>
+        <label class="pref-row" for="ddlAutoPlayNext">
+            <strong v-t="'actions.auto_play_next_video'" />
+            <select id="ddlAutoPlayNext" v-model.number="autoPlayNext" class="input w-auto">
+                <option v-t="'actions.never'" :value="0" />
+                <option v-t="'actions.playlists_only'" :value="1" />
+                <option v-t="'actions.always'" :value="2" />
+            </select>
+        </label>
         <label class="pref-row" for="chkAutoPlayNextCountdown">
             <strong v-t="'actions.autoplay_next_countdown'" />
             <PreferenceNumberField
@@ -88,33 +97,36 @@
             </template>
             <PreferenceSwitch id="chkAudioOnly" v-model="listen" @change="onChange" />
         </PreferenceRow>
-        <PreferenceRow for-id="chkPreferHls">
-            <template #label>
-                <strong v-t="'actions.prefer_hls'" />
-            </template>
-            <PreferenceSwitch id="chkPreferHls" v-model="preferHls" @change="onChange" />
-        </PreferenceRow>
-        <label class="pref-row" for="ddlDefaultQuality">
-            <strong v-t="'actions.default_quality'" />
-            <select
-                id="ddlDefaultQuality"
-                v-model.number="defaultQuality"
-                class="input w-auto"
-                @change="onChange($event)"
-            >
-                <option v-t="'actions.auto'" :value="0" />
-                <option
-                    v-for="resolution in resolutions"
-                    :key="resolution"
-                    :value="resolution"
-                    v-text="`${resolution}p`"
-                />
-            </select>
-        </label>
-        <label class="pref-row" for="txtBufferingGoal">
-            <strong v-t="'actions.buffering_goal'" />
-            <PreferenceNumberField id="txtBufferingGoal" v-model="bufferingGoal" :min="10" @change="onChange" />
-        </label>
+        <!-- only used by Piped's own player (embed off) -->
+        <template v-if="!youtubeNoCookieEmbed">
+            <PreferenceRow for-id="chkPreferHls">
+                <template #label>
+                    <strong v-t="'actions.prefer_hls'" />
+                </template>
+                <PreferenceSwitch id="chkPreferHls" v-model="preferHls" @change="onChange" />
+            </PreferenceRow>
+            <label class="pref-row" for="ddlDefaultQuality">
+                <strong v-t="'actions.default_quality'" />
+                <select
+                    id="ddlDefaultQuality"
+                    v-model.number="defaultQuality"
+                    class="input w-auto"
+                    @change="onChange($event)"
+                >
+                    <option v-t="'actions.auto'" :value="0" />
+                    <option
+                        v-for="resolution in resolutions"
+                        :key="resolution"
+                        :value="resolution"
+                        v-text="`${resolution}p`"
+                    />
+                </select>
+            </label>
+            <label class="pref-row" for="txtBufferingGoal">
+                <strong v-t="'actions.buffering_goal'" />
+                <PreferenceNumberField id="txtBufferingGoal" v-model="bufferingGoal" :min="10" @change="onChange" />
+            </label>
+        </template>
         <PreferenceRow for-id="chkMinimizeComments">
             <template #label>
                 <strong v-t="'actions.minimize_comments_default'" />
@@ -153,12 +165,15 @@
                 <option v-t="'video.chapters_vertical'" value="Vertical" />
             </select>
         </label>
-        <PreferenceRow for-id="chkShowWatchOnYouTube">
-            <template #label>
-                <strong v-t="'actions.show_watch_on_youtube'" />
-            </template>
-            <PreferenceSwitch id="chkShowWatchOnYouTube" v-model="showWatchOnYouTube" @change="onChange" />
-        </PreferenceRow>
+        <!-- links to Odysee next to the native player; the embed has its own "Open in YouTube" -->
+        <template v-if="!youtubeNoCookieEmbed">
+            <PreferenceRow for-id="chkShowWatchOnYouTube">
+                <template #label>
+                    <strong v-t="'actions.show_watch_on_youtube'" />
+                </template>
+                <PreferenceSwitch id="chkShowWatchOnYouTube" v-model="showWatchOnYouTube" @change="onChange" />
+            </PreferenceRow>
+        </template>
         <PreferenceRow for-id="chkShowSearchSuggestions">
             <template #label>
                 <strong v-t="'actions.show_search_suggestions'" />
@@ -183,33 +198,36 @@
             </template>
             <PreferenceSwitch id="chkHideWatched" v-model="hideWatched" @change="onChange" />
         </PreferenceRow>
-        <PreferenceRow for-id="ddlEnabledCodecs">
-            <template #label>
-                <strong v-t="'actions.enabled_codecs'" />
-            </template>
-            <PreferenceListbox
-                id="ddlEnabledCodecs"
-                v-model="enabledCodecs"
-                :options="codecOptions"
-                @change="onChange"
-            />
-        </PreferenceRow>
-        <PreferenceRow for-id="chkDisableLBRY">
-            <template #label>
-                <strong v-t="'actions.disable_lbry'" />
-            </template>
-            <PreferenceSwitch id="chkDisableLBRY" v-model="disableLBRY" @change="onChange" />
-        </PreferenceRow>
-        <PreferenceRow for-id="chkEnableLBRYProxy">
-            <template #label>
-                <strong v-t="'actions.enable_lbry_proxy'" />
-            </template>
-            <PreferenceSwitch id="chkEnableLBRYProxy" v-model="proxyLBRY" @change="onChange" />
-        </PreferenceRow>
-        <label class="pref-row" for="txtPrefetchLimit">
-            <strong v-t="'actions.concurrent_prefetch_limit'" />
-            <PreferenceNumberField id="txtPrefetchLimit" v-model="prefetchLimit" :min="0" @change="onChange" />
-        </label>
+        <!-- only used by Piped's own player (embed off) -->
+        <template v-if="!youtubeNoCookieEmbed">
+            <PreferenceRow for-id="ddlEnabledCodecs">
+                <template #label>
+                    <strong v-t="'actions.enabled_codecs'" />
+                </template>
+                <PreferenceListbox
+                    id="ddlEnabledCodecs"
+                    v-model="enabledCodecs"
+                    :options="codecOptions"
+                    @change="onChange"
+                />
+            </PreferenceRow>
+            <PreferenceRow for-id="chkDisableLBRY">
+                <template #label>
+                    <strong v-t="'actions.disable_lbry'" />
+                </template>
+                <PreferenceSwitch id="chkDisableLBRY" v-model="disableLBRY" @change="onChange" />
+            </PreferenceRow>
+            <PreferenceRow for-id="chkEnableLBRYProxy">
+                <template #label>
+                    <strong v-t="'actions.enable_lbry_proxy'" />
+                </template>
+                <PreferenceSwitch id="chkEnableLBRYProxy" v-model="proxyLBRY" @change="onChange" />
+            </PreferenceRow>
+            <label class="pref-row" for="txtPrefetchLimit">
+                <strong v-t="'actions.concurrent_prefetch_limit'" />
+                <PreferenceNumberField id="txtPrefetchLimit" v-model="prefetchLimit" :min="0" @change="onChange" />
+            </label>
+        </template>
 
         <h2>SponsorBlock</h2>
         <p class="pref-note">
@@ -230,12 +248,15 @@
                     <option v-t="'actions.skip_automatically'" value="auto" />
                 </select>
             </label>
-            <PreferenceRow for-id="chkShowMarkers">
-                <template #label>
-                    <strong v-t="'actions.show_markers'" />
-                </template>
-                <PreferenceSwitch id="chkShowMarkers" v-model="showMarkers" @change="onChange" />
-            </PreferenceRow>
+            <!-- markers are drawn on the native player's timeline -->
+            <template v-if="!youtubeNoCookieEmbed">
+                <PreferenceRow for-id="chkShowMarkers">
+                    <template #label>
+                        <strong v-t="'actions.show_markers'" />
+                    </template>
+                    <PreferenceSwitch id="chkShowMarkers" v-model="showMarkers" @change="onChange" />
+                </PreferenceRow>
+            </template>
             <label class="pref-row" for="txtMinSegmentLength">
                 <strong v-t="'actions.min_segment_length'" />
                 <PreferenceNumberField
@@ -410,7 +431,7 @@ import {
 } from "@/composables/usePreferences";
 import { fetchJson, apiUrl, authApiUrl, getAuthToken, hashCode, isAuthenticated } from "@/composables/useApi";
 import { getCustomInstances } from "@/composables/useCustomInstances";
-import { download } from "@/composables/useMisc";
+import { download, defaultHomepage as defaultHomepageValue } from "@/composables/useMisc";
 import { getDefaultLanguage } from "@/composables/useFormatting";
 
 const route = useRoute();
@@ -447,10 +468,13 @@ const minSegmentLength = usePreferenceNumber("minSegmentLength", 0);
 const dearrow = usePreferenceBoolean("dearrow", false);
 const selectedTheme = usePreferenceString("theme", "dark");
 const youtubeNoCookieEmbed = usePreferenceBoolean("youtubeNoCookieEmbed", true);
-const embedBackgroundPlayback = usePreferenceBoolean("embedBackgroundPlayback", true);
+// Phones: continue as audio when the screen turns off (GlobalPlayer.vue)
+const autoAudioWhenHidden = usePreferenceBoolean("autoAudioWhenHidden", true);
 const autoPlayVideo = usePreferenceBoolean("playerAutoPlay", true);
 const autoDisplayCaptions = usePreferenceBoolean("autoDisplayCaptions", false);
 const autoPlayNextCountdown = usePreferenceNumber("autoPlayNextCountdown", 5);
+// Read by the watch page and the mini player: 0 never, 1 playlists only, 2 always.
+const autoPlayNext = usePreferenceNumber("autoplay", 1);
 const listen = usePreferenceBoolean("listen", false);
 const resolutions = [144, 240, 360, 480, 720, 1080, 1440, 2160, 4320];
 const preferHls = usePreferenceBoolean("preferHls", false);
@@ -458,7 +482,7 @@ const defaultQuality = usePreferenceNumber("quality", 0);
 const bufferingGoal = usePreferenceNumber("bufferGoal", 10);
 const countryMap = ref(CountryMapDefault);
 const countrySelected = usePreferenceString("region", "US");
-const defaultHomepage = usePreferenceString("homepage", "trending");
+const defaultHomepage = usePreferenceString("homepage", defaultHomepageValue());
 const minimizeComments = usePreferenceBoolean("minimizeComments", false);
 const minimizeDescription = usePreferenceBoolean("minimizeDescription", true);
 const minimizeRecommendations = usePreferenceBoolean("minimizeRecommendations", false);

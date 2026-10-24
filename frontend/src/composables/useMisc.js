@@ -1,4 +1,15 @@
 import { getPreferenceBoolean, getPreferenceString } from "./usePreferences.js";
+import { getAuthToken } from "./useApi.js";
+
+// Logged-in users land on their subscription feed unless they picked a home page.
+// Every reader must pass the same default: preference refs are cached per key.
+export function defaultHomepage() {
+    return getAuthToken() ? "feed" : "trending";
+}
+
+export function getHomepagePreference() {
+    return getPreferenceString("homepage", defaultHomepage());
+}
 
 export async function updateWatched(videos) {
     if (window.db && getPreferenceBoolean("watchHistory", false)) {
@@ -28,7 +39,7 @@ export function download(text, filename, mimeType) {
 }
 
 export function getHomePage() {
-    switch (getPreferenceString("homepage", "trending")) {
+    switch (getHomepagePreference()) {
         case "trending":
             return "/trending";
         case "feed":

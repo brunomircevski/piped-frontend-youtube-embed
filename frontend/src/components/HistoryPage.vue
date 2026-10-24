@@ -1,7 +1,7 @@
 <template>
     <h1 v-t="'titles.history'" class="page-title" />
 
-    <div class="flex justify-between">
+    <div class="flex flex-wrap items-start justify-between gap-3">
         <div class="flex flex-col gap-2 md:flex-row md:items-center">
             <button v-t="'actions.clear_history'" class="btn" @click="clearHistory" />
 
@@ -13,7 +13,7 @@
             <SortingSelector by-key="watchedAt" @apply="order => videos.sort(order)" />
         </div>
 
-        <div class="ml-4 flex items-center">
+        <div class="flex flex-wrap items-center gap-y-2">
             <UiCheckbox id="autoDelete" v-model="autoDeleteHistory" @change="onChange" />
             <label v-t="'actions.delete_automatically'" class="ml-2" for="autoDelete" />
             <select v-model="autoDeleteDelayHours" class="ml-3 input" @change="onChange">

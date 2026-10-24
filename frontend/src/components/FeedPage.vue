@@ -1,20 +1,35 @@
 <template>
-    <h1 v-t="'titles.feed'" class="page-title" />
+    <div class="mt-2 mb-5 flex items-center gap-3">
+        <h1 v-t="'titles.feed'" class="page-title my-0" />
+        <!-- Filters, sorting, the subscriptions list and RSS are tucked away until asked for. -->
+        <button
+            type="button"
+            class="ml-auto btn"
+            :aria-expanded="showOptions"
+            aria-controls="feed-options"
+            @click="showOptions = !showOptions"
+        >
+            <i-fa6-solid-sliders />
+            <span v-t="'actions.filter'" />
+            <span v-if="filtersActive" class="size-2 rounded-full bg-(--accent)" />
+            <i-fa6-solid-chevron-down class="text-xs transition-transform" :class="{ 'rotate-180': showOptions }" />
+        </button>
+    </div>
 
-    <div class="flex flex-col flex-wrap gap-2 *:flex *:items-center *:gap-1 md:flex-row md:items-center">
-        <span>
-            <label for="filters">
-                <strong v-text="`${$t('actions.filter')}:`" />
-            </label>
+    <div
+        v-show="showOptions"
+        id="feed-options"
+        class="mb-5 flex flex-col gap-3 card text-sm md:flex-row md:flex-wrap md:items-center *:md:w-auto"
+    >
+        <label for="filters" class="flex items-center gap-2">
+            <strong v-text="`${$t('actions.filter')}:`" />
             <select id="filters" v-model="selectedFilter" default="all" class="input grow" @change="onFilterChange()">
                 <option v-for="filter in availableFilters" :key="filter" v-t="`video.${filter}`" :value="filter" />
             </select>
-        </span>
+        </label>
 
-        <span>
-            <label for="group-selector">
-                <strong v-text="`${$t('titles.channel_groups')}:`" />
-            </label>
+        <label for="group-selector" class="flex items-center gap-2">
+            <strong v-text="`${$t('titles.channel_groups')}:`" />
             <select id="group-selector" v-model="selectedGroupName" default="" class="input grow">
                 <option v-t="`video.all`" value="" />
                 <option
@@ -24,21 +39,27 @@
                     v-text="group.groupName"
                 />
             </select>
-        </span>
+        </label>
 
-        <span class="md:ml-auto">
+        <span class="flex items-center gap-2">
             <SortingSelector by-key="uploaded" @apply="order => videos.sort(order)" />
         </span>
-    </div>
-    <hr />
 
-    <span class="flex gap-2">
-        <router-link v-t="'titles.subscriptions'" class="btn" to="/subscriptions" />
-        <a :href="getRssUrl" class="btn" :aria-label="$t('actions.rss_feed')">
-            <i-fa6-solid-rss />
-        </a>
-    </span>
-    <hr />
+        <span class="flex gap-2 md:ml-auto">
+            <router-link class="btn ring-1 ring-(--border) ring-inset" to="/subscriptions">
+                <i-fa6-solid-users />
+                <span v-t="'titles.subscriptions'" />
+            </router-link>
+            <a
+                :href="getRssUrl"
+                class="btn btn-icon ring-1 ring-(--border) ring-inset"
+                :aria-label="$t('actions.rss_feed')"
+                :title="$t('actions.rss_feed')"
+            >
+                <i-fa6-solid-rss />
+            </a>
+        </span>
+    </div>
 
     <LoadingIndicatorPage :show-content="videosStore != null" class="video-grid">
         <template v-for="video in filteredVideos" :key="video.url">
@@ -69,6 +90,9 @@ const availableFilters = ["all", "shorts", "videos"];
 const selectedFilter = ref("all");
 const selectedGroupName = ref("");
 const channelGroups = ref([]);
+const showOptions = ref(false);
+
+const filtersActive = computed(() => selectedFilter.value !== "all" || selectedGroupName.value !== "");
 
 const getRssUrl = computed(() => {
     if (isAuthenticated()) return authApiUrl() + "/feed/rss?authToken=" + getAuthToken();

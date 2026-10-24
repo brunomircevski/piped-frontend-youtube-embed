@@ -18,7 +18,7 @@ import { fetchJson, apiUrl } from "@/composables/useApi.js";
 import { getPreferenceString } from "@/composables/usePreferences.js";
 import { updateWatched } from "@/composables/useMisc.js";
 import { fetchDeArrowContent } from "@/composables/useSubscriptions.js";
-import { getHomePage } from "@/composables/useMisc.js";
+import { getHomePage, getHomepagePreference } from "@/composables/useMisc.js";
 
 const route = useRoute();
 const router = useRouter();
@@ -33,7 +33,7 @@ async function fetchTrending(region) {
 }
 
 onMounted(() => {
-    if (route.path == import.meta.env.BASE_URL && getPreferenceString("homepage", "trending") == "feed") {
+    if (route.path == import.meta.env.BASE_URL && getHomepagePreference() == "feed") {
         return;
     }
     let region = getPreferenceString("region", "US");
