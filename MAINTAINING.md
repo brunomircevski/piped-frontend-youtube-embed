@@ -18,13 +18,29 @@ days (translations), so conflicts should be rare.
 ## What the fork changes
 
 - `src/components/YouTubeEmbed.vue` — the embed player (IFrame API over
-  `postMessage`): speed, progress save/resume, SponsorBlock, background-playback
-  resume, keyboard shortcuts, loop/ended handling.
-- `src/components/WatchVideo.vue` — renders `YouTubeEmbed` instead of
-  `VideoPlayer` when the `youtubeNoCookieEmbed` preference is on; redesigned
-  watch page.
-- `src/components/PreferencesPage.vue` — `youtubeNoCookieEmbed` and
-  `embedBackgroundPlayback` preferences; redesigned.
+  `postMessage`): speed, progress save/resume, SponsorBlock, keyboard
+  shortcuts, loop/ended handling.
+- `src/composables/usePlayer.js` + `src/components/GlobalPlayer.vue` — one
+  embed for the whole app, rendered in `App.vue`. A watch page registers a
+  placeholder element and the player is positioned over it (pinned to the top
+  on phones); when the page is left it becomes the mini player. The iframe is
+  only restyled, never moved in the DOM (moving an iframe reloads it).
+- `src/components/WatchVideo.vue` — uses the global player instead of
+  `VideoPlayer` when the `youtubeNoCookieEmbed` preference is on (the `/embed/`
+  route still renders its own `YouTubeEmbed`); redesigned watch page, comments
+  sheet on phones.
+- `src/components/AudioPlayer.vue` — audio mode: an `<audio>` element on our
+  origin (so the browser keeps it playing with the screen off) fed from the
+  backend's audio or muxed stream, with Media Session controls, SponsorBlock and
+  the same keyboard shortcuts. GlobalPlayer swaps it for the embed
+  (`setAudioMode` in `usePlayer.js`) at the current position.
+- `src/composables/usePlayback.js` — remembered speed, watch progress and
+  SponsorBlock labels shared by both players.
+- `src/components/BottomNav.vue` — bottom navigation below the `lg` breakpoint.
+- `src/composables/useSponsors.js` — SponsorBlock fetch shared by the watch page
+  and the mini player's autoplay.
+- `src/components/PreferencesPage.vue` — `youtubeNoCookieEmbed` preference;
+  redesigned.
 - `src/app.css` — design tokens (CSS variables for light/dark) and the shared
   classes `btn`, `input`, `segmented`, `card`, `chip`, `link`, `video-grid`,
   `pref-row`, …, declared with `@utility` so the Tailwind ESLint plugin knows
