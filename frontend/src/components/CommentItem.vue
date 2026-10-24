@@ -1,64 +1,81 @@
 <template>
-    <div class="mt-1.5 flex">
-        <img loading="lazy" :src="comment.thumbnail" class="size-12 rounded-full" height="48" width="48" alt="Avatar" />
+    <div class="flex gap-3 py-3">
+        <router-link :to="comment.commentorUrl" class="shrink-0">
+            <UiAvatar :src="comment.thumbnail" :name="comment.author" :size="40" />
+        </router-link>
 
-        <div class="pl-2">
-            <div>
-                <div v-if="comment.pinned">
-                    <i-fa6-solid-thumbtack />
-                    <span
-                        v-t="{
-                            path: 'comment.pinned_by',
-                            args: { author: uploader },
-                        }"
-                        class="ml-1.5"
-                    />
-                </div>
-
-                <div>
-                    <router-link
-                        class="font-bold hover:text-red-500 focus:text-red-500 dark:hover:text-red-400 dark:focus:text-red-400"
-                        :to="comment.commentorUrl"
-                        >{{ comment.author }}</router-link
-                    >
-                    <i-fa6-solid-check v-if="comment.verified" class="ml-1.5" />
-                </div>
-                <div class="mb-1.5 text-sm" v-text="comment.commentedTime" />
+        <div class="min-w-0 flex-1">
+            <div v-if="comment.pinned" class="mb-1 flex items-center gap-1.5 text-xs text-muted">
+                <i-fa6-solid-thumbtack />
+                <span v-t="{ path: 'comment.pinned_by', args: { author: uploader } }" />
             </div>
-            <!-- eslint-disable-next-line vue/no-v-html -->
-            <CollapsableText :text="comment.commentText" :visible-limit="500" />
-            <div class="my-1 flex items-center gap-3">
-                <i-fa6-solid-thumbs-up />
-                <span v-text="numberFormat(comment.likeCount)" />
-                <i-fa6-solid-heart v-if="comment.hearted" :title="$t('actions.creator_liked')" />
-                <img
-                    v-if="comment.creatorReplied"
+
+            <div class="flex flex-wrap items-center gap-x-2 text-sm">
+                <router-link
+                    class="inline-flex items-center gap-1 font-semibold"
+                    :class="comment.channelOwner ? 'rounded-full bg-(--surface-hover) px-2 py-0.5' : 'hover:underline'"
+                    :to="comment.commentorUrl"
+                >
+                    {{ comment.author }}
+                    <i-fa6-solid-circle-check v-if="comment.verified" class="text-xs text-muted" />
+                </router-link>
+                <span class="text-xs text-muted" v-text="comment.commentedTime" />
+            </div>
+
+            <CollapsableText :text="comment.commentText" :visible-limit="500" class="text-[0.9375rem]" />
+
+            <div class="mt-1 flex items-center gap-4 text-sm text-muted">
+                <span class="inline-flex items-center gap-1.5">
+                    <i-fa6-solid-thumbs-up class="text-xs" />
+                    <span v-text="numberFormat(comment.likeCount)" />
+                </span>
+                <span v-if="comment.hearted" class="relative inline-flex" :title="$t('actions.creator_liked')">
+                    <UiAvatar :src="uploaderAvatarUrl" :name="uploader" :size="20" />
+                    <i-fa6-solid-heart class="absolute -right-1.5 -bottom-1 text-[10px] text-(--accent)" />
+                </span>
+                <UiAvatar
+                    v-else-if="comment.creatorReplied"
                     :src="uploaderAvatarUrl"
-                    class="size-5 rounded-full"
+                    :name="uploader"
+                    :size="20"
                     :title="$t('actions.creator_replied')"
                 />
             </div>
-            <template v-if="comment.repliesPage && (!loadingReplies || !showingReplies)">
-                <div class="cursor-pointer" @click="loadReplies">
-                    <a v-text="`${$t('actions.reply_count', comment.replyCount)}`" />
-                    <i-fa6-solid-turn-down class="ml-1.5" />
-                </div>
-            </template>
-            <template v-if="showingReplies">
-                <div class="cursor-pointer" @click="hideReplies">
-                    <a v-t="'actions.hide_replies'" />
-                    <i-fa6-solid-turn-up class="ml-1.5" />
-                </div>
-            </template>
+
+            <button
+                v-if="comment.repliesPage && (!loadingReplies || !showingReplies)"
+                class="mt-1.5 -ml-3 inline-flex cursor-pointer items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium text-sky-600 hover:bg-sky-500/10 dark:text-sky-400"
+                @click="loadReplies"
+            >
+                <i-fa6-solid-chevron-down class="text-xs" />
+                {{ $t("actions.reply_count", comment.replyCount) }}
+            </button>
+            <button
+                v-if="showingReplies"
+                class="mt-1.5 -ml-3 inline-flex cursor-pointer items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium text-sky-600 hover:bg-sky-500/10 dark:text-sky-400"
+                @click="hideReplies"
+            >
+                <i-fa6-solid-chevron-up class="text-xs" />
+                {{ $t("actions.hide_replies") }}
+            </button>
             <div v-show="showingReplies" v-if="replies">
                 <div v-for="reply in replies" :key="reply.commentId" class="w-full">
                     <!-- eslint-disable-next-line vue/no-undef-components -->
-                    <CommentItem :comment="reply" :uploader="uploader" :video-id="videoId" />
+                    <CommentItem
+                        :comment="reply"
+                        :uploader="uploader"
+                        :uploader-avatar-url="uploaderAvatarUrl"
+                        :video-id="videoId"
+                    />
                 </div>
-                <div v-if="nextpage" class="cursor-pointer" @click="loadReplies">
-                    <a v-t="'actions.load_more_replies'" />
-                    <i-fa6-solid-turn-down class="ml-1.5" />
-                </div>
+                <button
+                    v-if="nextpage"
+                    class="-ml-3 inline-flex cursor-pointer items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium text-sky-600 hover:bg-sky-500/10 dark:text-sky-400"
+                    @click="loadReplies"
+                >
+                    <i-fa6-solid-turn-up class="rotate-90 text-xs" />
+                    {{ $t("actions.load_more_replies") }}
+                </button>
             </div>
         </div>
     </div>
@@ -67,6 +84,7 @@
 <script setup>
 import { ref } from "vue";
 import CollapsableText from "./CollapsableText.vue";
+import UiAvatar from "./ui/Avatar.vue";
 import { fetchJson, apiUrl } from "@/composables/useApi.js";
 import { numberFormat } from "@/composables/useFormatting.js";
 

@@ -1,10 +1,7 @@
 <template>
-    <div
-        class="flex min-h-screen w-full flex-col bg-white px-[1vw] py-5 text-black antialiased dark:bg-dark-900 dark:text-white"
-        :class="[theme]"
-    >
-        <div class="flex-1">
-            <NavBar />
+    <div class="flex min-h-screen w-full flex-col bg-(--surface) text-(--text) antialiased" :class="[theme]">
+        <NavBar />
+        <div class="mx-auto w-full max-w-[1800px] flex-1 px-3 pt-4 sm:px-6">
             <router-view v-slot="{ Component }">
                 <keep-alive :max="5">
                     <component :is="Component" :key="$route.fullPath" />
@@ -172,82 +169,24 @@ onBeforeUnmount(() => {
     }
 
     :root {
-        color-scheme: only light;
-        scrollbar-color: #4b4f52 #d1d5db;
-    }
-
-    ::-webkit-scrollbar {
-        background-color: #d1d5db;
-    }
-
-    ::-webkit-scrollbar-thumb {
-        background-color: #4b4f52;
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-        background-color: #5b6469;
-    }
-
-    ::-webkit-scrollbar-thumb:active {
-        background-color: #485053;
-    }
-
-    ::-webkit-scrollbar-corner {
-        background-color: #0b0e0f;
-    }
-
-    .dark ::-webkit-scrollbar {
-        background-color: #15191a;
-    }
-
-    .dark ::-webkit-scrollbar-thumb {
-        background-color: #4b4f52;
-    }
-
-    .dark ::-webkit-scrollbar-thumb:hover {
-        background-color: #5b6469;
-    }
-
-    .dark ::-webkit-scrollbar-thumb:active {
-        background-color: #485053;
-    }
-
-    .dark ::-webkit-scrollbar-corner {
-        background-color: #0b0e0f;
+        color-scheme: light;
+        scrollbar-width: thin;
+        scrollbar-color: #c4c4c4 transparent;
     }
 
     :root.dark {
-        scrollbar-color: #4b4f52 #15191a;
+        color-scheme: dark;
+        scrollbar-color: #4a4a4a transparent;
     }
 
     * {
         font-family: var(--font-sans);
     }
 
-    hr {
-        margin-top: 0.5rem !important;
-        margin-bottom: 0.75rem !important;
-        border-color: #d1d5db;
-    }
-
-    .dark hr {
-        border-color: var(--color-dark-100);
-    }
-
     h1,
     h2 {
         margin: 0;
         font-weight: 700;
-    }
-
-    h1 {
-        font-size: 3rem !important;
-        line-height: 1;
-    }
-
-    h2 {
-        font-size: 1.875rem !important;
-        line-height: 2.25rem;
     }
 }
 </style>

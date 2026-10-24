@@ -1,5 +1,7 @@
 <template>
-    <footer class="mt-10 flex w-full flex-wrap items-center justify-center gap-x-6 gap-y-4 rounded-xl py-4 text-center">
+    <footer
+        class="mt-12 flex w-full flex-wrap items-center justify-center gap-x-6 gap-y-3 border-t border-(--border) px-4 py-6 text-center text-sm text-muted"
+    >
         <a
             aria-label="GitHub"
             href="https://github.com/TeamPiped/Piped"
@@ -51,16 +53,3 @@ const donationHref = computed(() => config.value?.donationUrl);
 const statusPageHref = computed(() => config.value?.statusPageUrl);
 const privacyPolicyHref = computed(() => config.value?.privacyPolicyUrl);
 </script>
-
-<style>
-@reference "../app.css";
-
-@layer components {
-    footer {
-        background-color: var(--color-light-200);
-    }
-    .dark footer {
-        background-color: var(--color-dark-800);
-    }
-}
-</style>

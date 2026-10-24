@@ -51,16 +51,12 @@
         <div class="flex flex-col">
             <input
                 v-model="playbackSpeedInput"
-                class="my-3 h-8 w-auto rounded-md bg-gray-300 px-2.5 text-gray-600 focus:shadow-red-400 focus:outline-2 focus:outline-red-500 dark:bg-dark-400 dark:text-gray-400"
+                class="my-3 input w-auto"
                 type="text"
                 :placeholder="$t('actions.playback_speed')"
                 @keyup.enter="setSpeedFromInput()"
             />
-            <button
-                v-t="'actions.okay'"
-                class="ml-auto inline-block w-min cursor-pointer rounded-sm bg-gray-300 py-2 text-gray-600 hover:bg-gray-500 hover:text-white max-md:px-2 md:px-4 dark:bg-dark-400 dark:text-gray-400 dark:hover:bg-dark-300"
-                @click="setSpeedFromInput()"
-            />
+            <button v-t="'actions.okay'" class="ml-auto btn w-min" @click="setSpeedFromInput()" />
         </div>
     </ModalComponent>
 </template>

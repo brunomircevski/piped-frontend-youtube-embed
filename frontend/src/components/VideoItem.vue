@@ -1,7 +1,32 @@
 <template>
-    <div v-if="showVideo" class="flex flex-col justify-between">
+    <!-- compact horizontal card (watch page sidebar) -->
+    <div v-if="showVideo && compact" class="group flex gap-2">
+        <router-link :to="watchRoute" class="w-[168px] shrink-0">
+            <VideoThumbnail :item="item" small />
+        </router-link>
+        <div class="min-w-0 flex-1">
+            <router-link :to="watchRoute">
+                <p class="line-clamp-2 text-sm/snug font-semibold" :title="title" v-text="title" />
+            </router-link>
+            <router-link
+                v-if="item.uploaderUrl && item.uploaderName"
+                class="mt-1 flex items-center gap-1 text-xs text-muted hover:text-(--text)"
+                :to="item.uploaderUrl"
+                :title="item.uploaderName"
+            >
+                <span class="truncate" v-text="item.uploaderName" />
+                <i-fa6-solid-circle-check v-if="item.uploaderVerified" class="shrink-0 text-[10px]" />
+            </router-link>
+            <div class="text-xs text-muted">
+                <span v-if="item.views >= 0" v-t="{ path: 'video.views', args: { views: numberFormat(item.views) } }" />
+                <span v-if="item.uploaded > 0" v-text="` • ${timeAgo(item.uploaded)}`" />
+                <span v-else-if="item.uploadedDate" v-text="` • ${item.uploadedDate}`" />
+            </div>
+        </div>
+    </div>
+    <div v-else-if="showVideo" class="group flex flex-col">
         <router-link
-            class="inline-block w-full hover:text-red-500 focus:text-red-500 dark:hover:text-red-400 dark:focus:text-red-400"
+            class="block w-full"
             :to="{
                 path: '/watch',
                 query: {
@@ -16,44 +41,45 @@
 
             <div>
                 <p
-                    class="line-clamp-2 pt-2 leading-tight font-bold hover:text-red-500 focus:text-red-500 dark:hover:text-red-400 dark:focus:text-red-400"
+                    class="line-clamp-2 pt-3 text-[0.9375rem] leading-snug font-semibold"
                     :title="title"
                     v-text="title"
                 />
             </div>
         </router-link>
 
-        <div class="flex items-start pt-1">
+        <div class="flex items-start gap-3 pt-1.5">
             <router-link :to="item.uploaderUrl">
                 <img
                     v-if="item.uploaderAvatar"
                     loading="lazy"
                     :src="item.uploaderAvatar"
-                    class="mt-0.5 mr-0.5 size-8 shrink-0 rounded-full"
+                    class="mt-0.5 size-9 shrink-0 rounded-full bg-(--surface-muted)"
                     width="68"
                     height="68"
                 />
             </router-link>
 
-            <div class="min-w-0 flex-1 px-2">
+            <div class="min-w-0 flex-1">
                 <router-link
                     v-if="item.uploaderUrl && item.uploaderName && !hideChannel"
-                    class="inline-flex max-w-full items-center gap-1 text-sm/tight underline decoration-dark-400 hover:text-dark-400 focus:text-dark-400 dark:text-gray-300 dark:decoration-dark-100 dark:hover:text-gray-400 dark:hover:underline dark:hover:decoration-gray-400"
+                    class="inline-flex max-w-full items-center gap-1 text-sm text-muted hover:text-(--text)"
                     :to="item.uploaderUrl"
                     :title="item.uploaderName"
                 >
                     <span class="truncate" v-text="item.uploaderName" />
-                    <i-fa6-solid-check v-if="item.uploaderVerified" class="shrink-0" />
+                    <i-fa6-solid-circle-check v-if="item.uploaderVerified" class="shrink-0 text-xs" />
                 </router-link>
 
                 <div
                     v-if="item.views >= 0 || item.uploadedDate"
-                    class="mt-1 flex flex-wrap items-center gap-x-1 text-xs font-normal text-gray-600 dark:text-gray-400"
+                    class="flex flex-wrap items-center gap-x-1 text-sm text-muted"
                 >
-                    <span v-if="item.views >= 0" class="inline-flex items-center gap-1">
-                        <i-fa6-solid-eye class="shrink-0" />
-                        <span v-text="`${numberFormat(item.views)} •`" />
-                    </span>
+                    <span
+                        v-if="item.views >= 0"
+                        v-t="{ path: 'video.views', args: { views: numberFormat(item.views) } }"
+                        class="after:ml-1 after:content-['•']"
+                    />
                     <span
                         v-if="item.uploaded > 0"
                         :title="new Date(item.uploaded).toLocaleString()"
@@ -63,7 +89,9 @@
                 </div>
             </div>
 
-            <div class="ml-1 flex shrink-0 items-center gap-2.5 pt-0.5">
+            <div
+                class="flex shrink-0 items-center gap-0.5 text-sm text-muted transition-opacity *:flex *:size-8 *:items-center *:justify-center *:rounded-full *:hover:bg-(--surface-muted) *:hover:text-(--text) [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:focus-within:opacity-100"
+            >
                 <router-link
                     :to="{
                         path: '/watch',
@@ -156,7 +184,18 @@ const props = defineProps({
     playlistId: { type: String, default: null },
     preferListen: { type: Boolean, default: false },
     admin: { type: Boolean, default: false },
+    compact: { type: Boolean, default: false },
 });
+
+const watchRoute = computed(() => ({
+    path: "/watch",
+    query: {
+        v: props.item.url.substr(-11),
+        ...(props.playlistId && { list: props.playlistId }),
+        ...(props.index >= 0 && { index: props.index + 1 }),
+        ...(props.preferListen && { listen: 1 }),
+    },
+}));
 
 const emit = defineEmits(["update:watched", "remove"]);
 

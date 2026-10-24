@@ -1,10 +1,6 @@
 <template>
     <label v-t="'actions.sort_by'" for="ddlSortBy" />
-    <select
-        id="ddlSortBy"
-        v-model="selectedSort"
-        class="h-8 grow rounded-md bg-gray-300 px-2.5 text-gray-600 dark:bg-dark-400 dark:text-gray-400"
-    >
+    <select id="ddlSortBy" v-model="selectedSort" class="input grow">
         <option v-for="(value, key) in options" :key="key" v-t="`actions.${key}`" :value="value" />
     </select>
 </template>

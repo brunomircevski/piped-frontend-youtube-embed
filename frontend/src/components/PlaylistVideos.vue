@@ -1,15 +1,11 @@
 <template>
-    <div>
+    <div class="rounded-t-xl border border-b-0 border-(--border) px-4 pt-3 pb-2">
         <router-link :to="{ path: '/playlist', query: { list: playlistId } }"
             ><h1 class="text-lg! font-bold hover:underline" v-text="playlist.name"
         /></router-link>
-        <span class="text-sm">
+        <span class="text-xs text-muted">
             <template v-if="playlist.uploader">
-                <router-link
-                    class="underline decoration-dark-400 hover:text-dark-400 focus:text-dark-400 dark:text-gray-300 dark:decoration-dark-100 dark:hover:text-gray-400"
-                    :to="playlist.uploaderUrl"
-                    :title="playlist.uploader"
-                >
+                <router-link class="hover:text-(--text)" :to="playlist.uploaderUrl" :title="playlist.uploader">
                     {{ playlist.uploader }}
                 </router-link>
                 -
@@ -17,7 +13,7 @@
             {{ selectedIndex }} / {{ playlist.videos }}
         </span>
     </div>
-    <div ref="scrollable" class="mt-4 max-h-160 overflow-y-auto">
+    <div ref="scrollable" class="max-h-112 overflow-y-auto rounded-b-xl border border-t-0 border-(--border) p-1.5">
         <div
             v-for="(related, index) in playlist.relatedStreams"
             :key="related.url"
@@ -26,8 +22,8 @@
             :prefer-listen="preferListen"
         >
             <router-link
-                class="flex rounded-sm px-2 py-1 hover:bg-gray-50 dark:hover:bg-neutral-800"
-                :class="{ 'bg-gray-200 dark:bg-neutral-700': index === selectedIndex - 1 }"
+                class="flex items-center gap-1 rounded-lg p-1.5 hover:bg-(--surface-muted)"
+                :class="{ 'bg-(--surface-muted)': index === selectedIndex - 1 }"
                 :to="{
                     path: '/watch',
                     query: {
@@ -38,21 +34,17 @@
                     },
                 }"
             >
-                <span class="min-w-5 flex-none text-xs" v-text="index + 1" />
+                <span class="min-w-6 flex-none text-center text-xs text-muted" v-text="index + 1" />
                 <div class="w-24 flex-none">
                     <VideoThumbnail :item="related" :small="true" />
                 </div>
 
                 <div class="ml-2 flex flex-col">
-                    <span
-                        class="hover:text-red-500 focus:text-red-500 dark:hover:text-red-400 dark:focus:text-red-400"
-                        :title="related.title"
-                        v-text="related.title"
-                    />
+                    <span class="line-clamp-2 text-sm font-medium" :title="related.title" v-text="related.title" />
                     <div class="flex-1">
                         <router-link
                             v-if="related.uploaderUrl && related.uploaderName && !hideChannel"
-                            class="block overflow-hidden text-xs underline decoration-dark-400 hover:text-dark-400 focus:text-dark-400 dark:text-gray-300 dark:decoration-dark-100 dark:hover:text-gray-400"
+                            class="mt-0.5 block overflow-hidden text-xs text-muted hover:text-(--text)"
                             :to="related.uploaderUrl"
                             :title="related.uploaderName"
                         >

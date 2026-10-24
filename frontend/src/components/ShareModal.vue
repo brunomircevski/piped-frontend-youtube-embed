@@ -16,12 +16,7 @@
         </div>
         <div v-if="withTimeCode" class="mt-2 flex items-center justify-between">
             <label v-t="'actions.time_code'" />
-            <input
-                v-model="timeStamp"
-                class="h-8 w-12 rounded-md bg-gray-300 px-2.5 text-gray-600 focus:shadow-red-400 focus:outline-2 focus:outline-red-500 dark:bg-dark-400 dark:text-gray-400"
-                type="text"
-                @change="onChange"
-            />
+            <input v-model="timeStamp" class="input w-12" type="text" @change="onChange" />
         </div>
         <hr />
         <a :href="generatedLink" target="_blank">

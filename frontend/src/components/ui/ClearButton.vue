@@ -1,7 +1,7 @@
 <template>
     <button
         type="button"
-        class="absolute right-3 size-4 cursor-pointer rounded-full bg-gray-300 text-center text-[10px] text-black opacity-50 hover:opacity-70 dark:bg-gray-400"
+        class="absolute right-3 flex size-5 cursor-pointer items-center justify-center rounded-full bg-(--surface-hover) text-[10px] text-muted hover:text-(--text)"
         :aria-label="$t('actions.clear')"
         @click="$emit('clear')"
     >

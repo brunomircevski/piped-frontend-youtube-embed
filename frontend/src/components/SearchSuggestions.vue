@@ -1,6 +1,7 @@
 <template>
     <div
-        class="absolute left-1/2 z-10 box-border w-full max-w-3xl -translate-x-1/2 transform-gpu bg-gray-300 max-md:max-w-[calc(100%-0.5rem)] dark:bg-dark-400"
+        :class="{ hidden: searchSuggestions.length === 0 }"
+        class="absolute left-1/2 z-50 mt-1 box-border w-full max-w-xl -translate-x-1/2 overflow-hidden rounded-2xl border border-(--border) bg-(--surface-raised) py-2 shadow-(--shadow) max-md:max-w-[calc(100%-1.5rem)]"
     >
         <ul>
             <li
@@ -10,8 +11,8 @@
                 @click="setSelected(i)"
             >
                 <router-link
-                    class="block w-full p-1"
-                    :class="{ 'bg-gray-200 dark:bg-dark-100': selected === i }"
+                    class="block w-full px-4 py-1.5"
+                    :class="{ 'bg-(--surface-muted)': selected === i }"
                     :to="`/results?search_query=${encodeURIComponent(suggestion)}`"
                     >{{ suggestion }}</router-link
                 >

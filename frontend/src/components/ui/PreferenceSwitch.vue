@@ -2,7 +2,7 @@
     <SwitchRoot
         :id="id"
         :model-value="modelValue"
-        class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent bg-gray-300 transition-colors focus-visible:outline-2 focus-visible:outline-red-500 data-[state=checked]:bg-red-500 dark:bg-dark-400 dark:data-[state=checked]:bg-red-400"
+        class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent bg-neutral-300 transition-colors data-[state=checked]:bg-(--accent) dark:bg-dark-300"
         @update:model-value="handleUpdate"
     >
         <SwitchThumb

@@ -4,7 +4,7 @@
         :model-value="modelValue"
         :disabled="disabled"
         :class="[
-            'inline-flex size-4 shrink-0 items-center justify-center rounded-sm border border-gray-500 bg-gray-300 text-white outline-none focus:shadow-red-400 focus:outline-2 focus:outline-red-500 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:border-red-500 data-[state=checked]:bg-red-500 dark:border-gray-400 dark:bg-dark-400 dark:data-[state=checked]:border-red-400 dark:data-[state=checked]:bg-red-400',
+            'inline-flex size-4.5 shrink-0 cursor-pointer items-center justify-center rounded-[5px] border border-neutral-400 bg-transparent text-white disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:border-(--accent) data-[state=checked]:bg-(--accent) dark:border-neutral-500',
             customClass,
         ]"
         @update:model-value="handleUpdate"

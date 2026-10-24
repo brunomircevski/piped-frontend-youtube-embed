@@ -1,9 +1,9 @@
 <template>
     <div
-        class="fixed top-12 right-12 z-9999 flex min-w-max flex-col justify-center rounded-sm bg-white/80 p-4 text-black shadow-sm duration-200 dark:bg-dark-900/80 dark:text-white"
+        class="fixed right-4 bottom-4 z-9999 flex min-w-max items-center gap-4 rounded-2xl border border-(--border) bg-(--surface-raised) py-3 pr-3 pl-5 text-sm shadow-(--shadow) duration-200"
     >
         <slot />
-        <button v-t="'actions.dismiss'" class="underline" @click="dismiss" />
+        <button v-t="'actions.dismiss'" class="btn" @click="dismiss" />
     </div>
 </template>
 

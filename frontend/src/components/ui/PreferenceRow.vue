@@ -1,8 +1,5 @@
 <template>
-    <label
-        class="mx-[15vw] my-2 flex items-center justify-between odd:bg-gray-200 max-md:mx-[2vw] dark:odd:bg-dark-800"
-        :for="forId"
-    >
+    <label class="pref-row" :for="forId">
         <slot name="label" />
         <slot />
     </label>

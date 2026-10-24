@@ -1,15 +1,14 @@
 <template>
-    <div class="flex justify-center">
-        <h1 v-t="'titles.register'" class="my-4 text-center font-bold" />
-        <i-fa6-solid-circle-info class="mt-6 ml-2 cursor-pointer" :title="$t('info.register_note')" />
+    <div class="mt-8 flex items-center justify-center gap-2">
+        <h1 v-t="'titles.register'" class="text-2xl font-bold" />
+        <i-fa6-solid-circle-info class="cursor-help text-muted" :title="$t('info.register_note')" />
     </div>
-    <hr />
-    <div class="flex flex-col items-center justify-center text-center">
-        <form class="w-max items-center px-3 *:pb-3">
+    <div class="flex w-full justify-center px-3">
+        <form class="mt-6 grid w-full max-w-sm gap-3 card p-6">
             <div>
                 <input
                     v-model="username"
-                    class="h-8 w-full rounded-md bg-gray-300 px-2.5 text-gray-600 focus:shadow-red-400 focus:outline-2 focus:outline-red-500 dark:bg-dark-400 dark:text-gray-400"
+                    class="input w-full"
                     type="text"
                     autocomplete="username"
                     :placeholder="$t('login.username')"
@@ -17,10 +16,10 @@
                     @keyup.enter="register"
                 />
             </div>
-            <div class="flex justify-center">
+            <div class="relative flex items-center">
                 <input
                     v-model="password"
-                    class="h-auto w-full rounded-md bg-gray-300 px-2.5 text-gray-600 focus:shadow-red-400 focus:outline-2 focus:outline-red-500 dark:bg-dark-400 dark:text-gray-400"
+                    class="input w-full"
                     :type="showPassword ? 'text' : 'password'"
                     autocomplete="password"
                     :placeholder="$t('login.password')"
@@ -29,10 +28,10 @@
                 />
                 <PasswordToggle v-model="showPassword" />
             </div>
-            <div class="flex justify-center">
+            <div class="relative flex items-center">
                 <input
                     v-model="passwordConfirm"
-                    class="h-auto w-full rounded-md bg-gray-300 px-2.5 text-gray-600 focus:shadow-red-400 focus:outline-2 focus:outline-red-500 dark:bg-dark-400 dark:text-gray-400"
+                    class="input w-full"
                     :type="showConfirmPassword ? 'text' : 'password'"
                     autocomplete="password"
                     :placeholder="$t('login.password_confirm')"
@@ -42,7 +41,7 @@
                 <PasswordToggle v-model="showConfirmPassword" />
             </div>
             <div>
-                <Button v-t="'titles.register'" @click="register" />
+                <Button v-t="'titles.register'" custom-class="btn-primary w-full" @click="register" />
             </div>
         </form>
     </div>

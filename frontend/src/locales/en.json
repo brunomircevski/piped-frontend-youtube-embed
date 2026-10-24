@@ -21,7 +21,8 @@
     },
     "player": {
         "watch_on": "View on {0}",
-        "failed": "Failed with error code {0}. See logs for more info."
+        "failed": "Failed with error code {0}. See logs for more info.",
+        "undo": "Undo"
     },
     "actions": {
         "subscribe": "Subscribe",
@@ -178,13 +179,16 @@
         "show_password": "Show password",
         "hide_password": "Hide password",
         "rss_feed": "RSS feed",
-        "playlist_rss_feed": "Playlist RSS feed"
+        "playlist_rss_feed": "Playlist RSS feed",
+        "embed_background_playback": "Keep playing when the screen is off or the app is in the background",
+        "play_all": "Play all"
     },
     "comment": {
         "pinned_by": "Pinned by {author}",
         "disabled": "Comments are disabled by the uploader.",
         "loading": "Loading comments…",
-        "user_disabled": "Comments are disabled in the settings."
+        "user_disabled": "Comments are disabled in the settings.",
+        "comments": "Comments"
     },
     "preferences": {
         "instance_name": "Instance Name",
@@ -252,6 +256,8 @@
         "success": "Success",
         "error": "Error",
         "skipped": "Skipped",
-        "selected_subscriptions": "Selected subscriptions"
+        "selected_subscriptions": "Selected subscriptions",
+        "subscriber_count": "{count} subscribers",
+        "playlist_videos_unavailable": "The server didn't return any videos for this playlist."
     }
 }

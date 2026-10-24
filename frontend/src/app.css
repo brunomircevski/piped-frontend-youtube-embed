@@ -3,40 +3,335 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif,
-        "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    --font-sans:
+        system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans",
+        sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 
-    --color-light-200: #cacaca;
-    --color-dark-100: #3f3f46;
-    --color-dark-300: #323232;
-    --color-dark-400: #222222;
-    --color-dark-700: #1a1a1a;
-    --color-dark-800: #141414;
+    /* Neutral surfaces, darkest last. Shared by every component through dark:bg-dark-*. */
+    --color-light-200: #e5e5e5;
+    --color-dark-100: #4a4a4a;
+    --color-dark-300: #3a3a3a;
+    --color-dark-400: #272727;
+    --color-dark-700: #1f1f1f;
+    --color-dark-800: #181818;
     --color-dark-900: #0f0f0f;
+}
+
+/* Design tokens. Components use these through the classes below, so the whole UI
+   stays consistent and both themes are defined in one place. */
+:root {
+    --accent: #e5242b;
+    --accent-hover: #c81e24;
+    --surface: #ffffff;
+    --surface-raised: #ffffff;
+    --surface-muted: #f2f2f2;
+    --surface-hover: #e5e5e5;
+    --border: #e5e5e5;
+    --text: #0f0f0f;
+    --text-muted: #606060;
+    --ring: rgb(229 36 43 / 0.45);
+    --shadow: 0 8px 24px rgb(0 0 0 / 0.12), 0 1px 3px rgb(0 0 0 / 0.08);
+}
+
+.dark {
+    --accent: #ff4e45;
+    --accent-hover: #ff6a62;
+    --surface: #0f0f0f;
+    --surface-raised: #212121;
+    --surface-muted: #272727;
+    --surface-hover: #3a3a3a;
+    --border: #303030;
+    --text: #f1f1f1;
+    --text-muted: #aaaaaa;
+    --ring: rgb(255 78 69 / 0.5);
+    --shadow: 0 8px 24px rgb(0 0 0 / 0.5);
+    color-scheme: dark;
+}
+
+@layer base {
+    html {
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    hr {
+        border-color: var(--border);
+        margin-block: 0.75rem;
+    }
+
+    body {
+        background: var(--surface);
+    }
+
+    h1 {
+        font-size: 1.5rem;
+        line-height: 2rem;
+        letter-spacing: -0.01em;
+    }
+
+    h2 {
+        font-size: 1.25rem;
+        line-height: 1.75rem;
+    }
+
+    :focus-visible {
+        outline: 2px solid var(--ring);
+        outline-offset: 2px;
+    }
+
+    ::selection {
+        background: var(--ring);
+    }
+}
+
+/* Design-system classes (pill buttons, inputs, cards, ...). Declared as utilities so
+   variants work and the Tailwind ESLint plugin knows them. */
+@utility btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 2.25rem;
+    padding: 0.375rem 1rem;
+    border-radius: 9999px;
+    background: var(--surface-muted);
+    color: var(--text);
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.25rem;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+        background-color 0.15s,
+        color 0.15s;
+    &:hover {
+        background: var(--surface-hover);
+    }
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+}
+
+@utility btn-primary {
+    background: var(--text);
+    color: var(--surface);
+    &:hover {
+        background: var(--text);
+        opacity: 0.85;
+    }
+}
+
+@utility btn-accent {
+    background: var(--accent);
+    color: #fff;
+    &:hover {
+        background: var(--accent-hover);
+    }
+}
+
+@utility btn-ghost {
+    background: transparent;
+}
+
+@utility btn-icon {
+    padding: 0;
+    width: 2.25rem;
+    min-width: 2.25rem;
+}
+
+@utility input {
+    height: 2.5rem;
+    padding: 0 0.875rem;
+    border-radius: 0.625rem;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 0.875rem;
+    transition:
+        border-color 0.15s,
+        box-shadow 0.15s;
+    &::placeholder {
+        color: var(--text-muted);
+    }
+    &:focus {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--ring);
+    }
+    &:is(select) {
+        padding-right: 2rem;
+        cursor: pointer;
+    }
+}
+
+@utility segmented {
+    display: inline-flex;
+    padding: 0.1875rem;
+    gap: 0.125rem;
+    border-radius: 9999px;
+    background: var(--surface-muted);
+    & > button {
+        padding: 0.25rem 0.625rem;
+        border-radius: 9999px;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        font-variant-numeric: tabular-nums;
+        color: var(--text-muted);
+        cursor: pointer;
+        transition:
+            background-color 0.15s,
+            color 0.15s;
+    }
+    & > button:hover {
+        color: var(--text);
+    }
+    & > button[aria-pressed="true"] {
+        background: var(--surface);
+        color: var(--text);
+        box-shadow: 0 1px 2px rgb(0 0 0 / 0.15);
+    }
+    .dark & > button[aria-pressed="true"] {
+        background: var(--surface-hover);
+    }
+}
+
+@utility card {
+    border-radius: 0.875rem;
+    background: var(--surface-muted);
+    padding: 0.875rem 1rem;
+}
+
+@utility chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.5rem;
+    background: var(--surface-muted);
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: background-color 0.15s;
+    &:is(a):hover {
+        background: var(--surface-hover);
+    }
+    &:is(button):hover {
+        background: var(--surface-hover);
+    }
+}
+
+@utility text-muted {
+    color: var(--text-muted);
+}
+
+@utility link {
+    color: var(--text);
+    transition: color 0.15s;
+    &:hover {
+        color: var(--accent);
+    }
+}
+
+@utility nav-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 2.25rem;
+    padding: 0 0.75rem;
+    border-radius: 9999px;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition:
+        background-color 0.15s,
+        color 0.15s;
+    &:hover {
+        background: var(--surface-muted);
+        color: var(--text);
+    }
+    &.router-link-active {
+        background: var(--surface-muted);
+        color: var(--text);
+    }
+}
+
+@utility video-grid {
+    display: grid;
+    gap: 1.75rem 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+}
+
+@utility page-title {
+    margin-block: 0.5rem 1.25rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+@utility pref-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 3.25rem;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.9375rem;
+    &:last-child {
+        border-bottom: 0;
+    }
+    & strong {
+        font-weight: 500;
+    }
+}
+
+/* Preferences page: section headings and the instances table */
+@utility prefs {
+    & h2 {
+        margin: 2.5rem 0 0.5rem;
+        padding: 0 1rem;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+    }
+    & th,
+    & td {
+        padding: 0.5rem 0.75rem;
+        border-bottom: 1px solid var(--border);
+    }
+    & th {
+        font-weight: 600;
+        background: var(--surface-muted);
+    }
+}
+
+@utility pref-note {
+    padding: 0 1rem 0.5rem;
+    font-size: 0.875rem;
+    color: var(--text-muted);
 }
 
 @utility skip-segment-button {
     z-index: 1000;
     position: absolute;
-    transform: translate(0, -50%);
-    top: 50%;
-    right: 0;
-    background-color: rgb(0 0 0 / 0.5);
-    border: 2px rgba(255, 255, 255, 0.75) solid;
-    border-right: 0;
-    border-radius: 0.75em;
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
-    padding: 0.5em;
+    right: 0.75rem;
+    bottom: 4rem;
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    background-color: rgb(0 0 0 / 0.75);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.3);
     color: #fff;
+    font-size: 0.875rem;
+    font-weight: 500;
     line-height: 1.5em;
 }
 
 @utility skip-segment-icon {
-    font-size: 1.6em;
+    font-size: 1.1em;
     line-height: inherit;
-    margin-left: 0.4em;
 }

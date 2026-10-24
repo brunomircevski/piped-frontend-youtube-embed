@@ -6,80 +6,76 @@
             v-if="channel.bannerUrl"
             loading="lazy"
             :src="channel.bannerUrl"
-            class="h-30 w-full object-cover py-1.5 md:h-50"
+            class="aspect-6/1 w-full rounded-2xl bg-(--surface-muted) object-cover"
         />
-        <div class="flex flex-col items-center justify-between md:flex-row">
-            <div class="flex place-items-center">
-                <img height="48" width="48" class="m-1 rounded-full" :src="channel.avatarUrl" />
-                <div class="flex items-center gap-1">
-                    <h1 class="text-xl!" v-text="channel.name" />
-                    <i-fa6-solid-check v-if="channel.verified" class="text-xl!" />
+        <div class="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center">
+            <UiAvatar :src="channel.avatarUrl" :name="channel.name" :size="96" class="max-sm:hidden" />
+            <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2">
+                    <UiAvatar :src="channel.avatarUrl" :name="channel.name" :size="48" class="sm:hidden" />
+                    <h1 class="text-2xl font-bold sm:text-3xl" v-text="channel.name" />
+                    <i-fa6-solid-circle-check v-if="channel.verified" class="text-base text-muted" />
                 </div>
-            </div>
-
-            <div class="flex gap-2">
-                <button
-                    class="inline-block w-auto cursor-pointer rounded-sm bg-gray-300 py-2 text-gray-600 hover:bg-gray-500 hover:text-white focus:shadow-red-400 focus:outline-2 focus:outline-red-500 max-md:px-2 md:px-4 dark:bg-dark-400 dark:text-gray-400 dark:hover:bg-dark-300"
-                    @click="subscribeHandler"
-                    v-text="
-                        $t('actions.' + (subscribed ? 'unsubscribe' : 'subscribe')) +
-                        ' - ' +
-                        numberFormat(channel.subscriberCount)
-                    "
-                ></button>
-
-                <button
-                    v-if="subscribed"
-                    v-t="'actions.add_to_group'"
-                    class="inline-block w-auto cursor-pointer rounded-sm bg-gray-300 py-2 text-gray-600 hover:bg-gray-500 hover:text-white focus:shadow-red-400 focus:outline-2 focus:outline-red-500 max-md:px-2 md:px-4 dark:bg-dark-400 dark:text-gray-400 dark:hover:bg-dark-300"
-                    @click="showGroupModal = true"
-                ></button>
-
-                <!-- RSS Feed button -->
-                <a
-                    v-if="channel.id"
-                    aria-label="RSS feed"
-                    title="RSS feed"
-                    role="button"
-                    :href="`${apiUrl()}/feed/unauthenticated/rss?channels=${channel.id}`"
-                    target="_blank"
-                    class="inline-block w-auto cursor-pointer rounded-sm bg-gray-300 py-2 text-gray-600 hover:bg-gray-500 hover:text-white focus:shadow-red-400 focus:outline-2 focus:outline-red-500 max-md:px-2 md:px-4 dark:bg-dark-400 dark:text-gray-400 dark:hover:bg-dark-300"
-                >
-                    <i-fa6-solid-rss />
-                </a>
+                <div
+                    v-if="channel.subscriberCount >= 0"
+                    v-t="{ path: 'info.subscriber_count', args: { count: numberFormat(channel.subscriberCount) } }"
+                    class="mt-1 text-sm text-muted"
+                />
+                <CollapsableText :text="channel.description" class="mt-1 max-w-3xl text-sm text-muted" />
+                <div class="mt-3 flex flex-wrap gap-2">
+                    <button
+                        v-t="`actions.${subscribed ? 'unsubscribe' : 'subscribe'}`"
+                        class="btn"
+                        :class="subscribed ? '' : 'btn-primary'"
+                        @click="subscribeHandler"
+                    />
+                    <button
+                        v-if="subscribed"
+                        v-t="'actions.add_to_group'"
+                        class="btn"
+                        @click="showGroupModal = true"
+                    ></button>
+                    <a
+                        v-if="channel.id"
+                        :aria-label="$t('actions.rss_feed')"
+                        :title="$t('actions.rss_feed')"
+                        :href="`${apiUrl()}/feed/unauthenticated/rss?channels=${channel.id}`"
+                        target="_blank"
+                        class="btn btn-icon"
+                    >
+                        <i-fa6-solid-rss />
+                    </a>
+                    <WatchOnButton :link="`https://youtube.com/channel/${channel.id}`" />
+                </div>
             </div>
         </div>
 
-        <CollapsableText :text="channel.description" />
-
-        <WatchOnButton :link="`https://youtube.com/channel/${channel.id}`" />
-
-        <div class="mx-1 my-2 flex">
+        <div class="mt-5 flex items-center gap-1 border-b border-(--border)">
             <button
                 v-for="(tab, index) in tabs"
                 :key="tab.name"
-                class="mr-2 inline-block w-auto cursor-pointer rounded-sm bg-gray-300 py-2 text-gray-600 hover:bg-gray-500 hover:text-white focus:shadow-red-400 focus:outline-2 focus:outline-red-500 max-md:px-2 md:px-4 dark:bg-dark-400 dark:text-gray-400 dark:hover:bg-dark-300"
-                :class="{
-                    'bg-gray-500 text-white dark:bg-dark-300': selectedTab == index,
-                }"
+                class="-mb-px cursor-pointer border-b-2 px-4 py-2.5 text-sm font-semibold transition-colors"
+                :class="
+                    selectedTab == index
+                        ? 'border-(--text) text-(--text)'
+                        : 'border-transparent text-muted hover:text-(--text)'
+                "
                 @click="loadTab(index)"
             >
                 <span v-text="tab.translatedName"></span>
             </button>
-            <router-link :to="`/playlist?list=UU${channel.id.substring(2)}`">
-                <button
-                    class="inline-block h-full w-auto cursor-pointer rounded-sm bg-gray-300 py-2 text-gray-600 hover:bg-gray-500 hover:text-white focus:shadow-red-400 focus:outline-2 focus:outline-red-500 max-md:px-2 md:px-4 dark:bg-dark-400 dark:text-gray-400 dark:hover:bg-dark-300"
-                >
-                    Play all videos
-                </button>
+            <router-link
+                :to="`/playlist?list=UU${channel.id.substring(2)}`"
+                class="mb-1 ml-auto btn text-muted btn-ghost"
+            >
+                <i-fa6-solid-play class="text-xs" />
+                <span v-t="'actions.play_all'" />
             </router-link>
         </div>
 
-        <hr />
+        <div class="h-5" />
 
-        <div
-            class="mx-2 grid grid-cols-1 gap-y-5 max-md:gap-x-3 sm:mx-0 sm:grid-cols-2 md:grid-cols-3 md:gap-x-6 lg:grid-cols-4 xl:grid-cols-5"
-        >
+        <div class="video-grid">
             <ContentItem
                 v-for="item in contentItems"
                 :key="item.url"
@@ -98,6 +94,7 @@
 import { ref, onMounted, onActivated, onDeactivated, onUnmounted } from "vue";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
+import UiAvatar from "./ui/Avatar.vue";
 import ErrorHandler from "./ErrorHandler.vue";
 import ContentItem from "./ContentItem.vue";
 import WatchOnButton from "./WatchOnButton.vue";

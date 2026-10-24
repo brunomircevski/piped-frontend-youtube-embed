@@ -1,14 +1,14 @@
 <template>
     <DialogRoot :open="true" @update:open="onOpenChange">
         <DialogPortal>
-            <DialogOverlay class="fixed inset-0 z-50 bg-gray-500/80 transition-opacity dark:bg-dark-900/80" />
+            <DialogOverlay class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm transition-opacity" />
             <DialogContent
-                class="fixed top-1/2 left-1/2 z-50 w-min min-w-[20vw] -translate-1/2 rounded-xl bg-white p-5 text-black focus:outline-none dark:bg-dark-700 dark:text-white"
+                class="fixed top-1/2 left-1/2 z-50 max-h-[90vh] w-max max-w-[92vw] min-w-[min(92vw,22rem)] -translate-1/2 overflow-y-auto rounded-2xl border border-(--border) bg-(--surface-raised) p-6 text-(--text) shadow-(--shadow) focus:outline-none"
             >
                 <DialogClose as-child>
                     <button
                         type="button"
-                        class="absolute top-1 right-2.5 text-gray-700 hover:text-black dark:text-gray-300 dark:hover:text-white"
+                        class="absolute top-3 right-3 flex size-8 items-center justify-center rounded-full text-muted hover:bg-(--surface-muted) hover:text-(--text)"
                     >
                         <i-fa6-solid-xmark />
                     </button>

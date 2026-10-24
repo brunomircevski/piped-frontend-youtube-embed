@@ -5,20 +5,18 @@
         :min="min"
         :max="max"
         :step="step"
-        class="inline-flex h-8 items-center rounded-md bg-gray-300 text-gray-700 dark:bg-dark-400 dark:text-gray-300"
+        class="inline-flex h-9 items-center rounded-full bg-(--surface-muted)"
         @update:model-value="handleUpdate"
     >
         <NumberFieldDecrement
-            class="inline-flex h-full w-8 items-center justify-center rounded-l-md border-r border-gray-400 text-base transition-colors hover:bg-gray-500 hover:text-white focus-visible:outline-2 focus-visible:outline-red-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-dark-300 dark:hover:bg-dark-300"
+            class="inline-flex h-full w-8 items-center justify-center rounded-l-full text-base transition-colors hover:bg-(--surface-hover) disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="Decrease value"
         >
             −
         </NumberFieldDecrement>
-        <NumberFieldInput
-            class="h-full w-16 bg-transparent px-2 text-center text-gray-700 outline-none focus-visible:outline-2 focus-visible:outline-red-500 dark:text-gray-300"
-        />
+        <NumberFieldInput class="h-full w-14 bg-transparent px-1 text-center tabular-nums outline-none" />
         <NumberFieldIncrement
-            class="inline-flex h-full w-8 items-center justify-center rounded-r-md border-l border-gray-400 text-base transition-colors hover:bg-gray-500 hover:text-white focus-visible:outline-2 focus-visible:outline-red-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-dark-300 dark:hover:bg-dark-300"
+            class="inline-flex h-full w-8 items-center justify-center rounded-r-full text-base transition-colors hover:bg-(--surface-hover) disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="Increase value"
         >
             +

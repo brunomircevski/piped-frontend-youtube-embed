@@ -5,11 +5,7 @@
             <form>
                 <div>
                     <label v-t="'actions.file_format'" class="mr-2" for="export-format" />
-                    <select
-                        id="export-format"
-                        v-model="exportAs"
-                        class="h-8 rounded-md bg-gray-300 px-2.5 text-gray-600 focus:shadow-red-400 focus:outline-2 focus:outline-red-500 dark:bg-dark-400 dark:text-gray-400"
-                    >
+                    <select id="export-format" v-model="exportAs" class="input">
                         <option
                             v-for="option in exportOptions"
                             :key="option"
