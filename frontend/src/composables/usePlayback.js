@@ -4,7 +4,7 @@
 const STORAGE_SPEED_KEY = "playbackRate";
 const STORAGE_PROGRESS_KEY = "watchProgress";
 export const MIN_RATE = 0.25;
-export const MAX_RATE = 3;
+export const MAX_RATE = 2;
 const MIN_SAVE_SECONDS = 10;
 const MAX_PROGRESS_RATIO = 0.9;
 const MAX_PROGRESS_ENTRIES = 500;

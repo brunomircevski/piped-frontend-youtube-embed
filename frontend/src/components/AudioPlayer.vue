@@ -528,6 +528,9 @@ function canPrime(videoId) {
 }
 
 function activate() {
+    // The speed may have been changed in the video player since this mounted.
+    currentRate.value = readStoredSpeed();
+    if (audioEl.value) audioEl.value.defaultPlaybackRate = audioEl.value.playbackRate = currentRate.value;
     const start = getStartSeconds(props.videoId, props.startTime);
     const autoplay = props.autoplay ?? getPreferenceBoolean("playerAutoPlay", true);
     setMediaActions(true);

@@ -49,10 +49,7 @@ export const player = reactive({
 });
 
 // Speed buttons; the embed API clamps anything above 2x, so faster ones would be lies.
-export const SPEEDS = [1, 1.25, 1.5, 1.75, 2, 2.5, 3];
-// YouTube's embed caps playback speed at 2×; faster speeds only apply in audio mode.
-export const EMBED_MAX_RATE = 2;
-export const EMBED_SPEEDS = SPEEDS.filter(rate => rate <= EMBED_MAX_RATE);
+export const SPEEDS = [1, 1.25, 1.5, 1.75, 2];
 
 // Exposed controls of the mounted YouTubeEmbed (seek, play, pause, ...)
 export const embed = shallowRef(null);

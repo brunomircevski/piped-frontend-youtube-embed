@@ -56,56 +56,105 @@
                 <h1 class="mt-3 text-xl/snug font-semibold wrap-break-word" v-text="video.title" />
 
                 <!-- channel + actions -->
-                <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-3">
-                    <div class="flex min-w-0 items-center gap-3">
-                        <router-link :to="video.uploaderUrl ?? '/'" class="shrink-0">
-                            <UiAvatar :src="video.uploaderAvatar" :name="video.uploader" :size="40" />
-                        </router-link>
-                        <div class="min-w-0 leading-tight">
-                            <router-link
-                                v-if="video.uploaderUrl"
-                                class="flex items-center gap-1 font-semibold"
-                                :to="video.uploaderUrl"
-                            >
-                                <span class="truncate" v-text="video.uploader" />
-                                <i-fa6-solid-circle-check
-                                    v-if="video.uploaderVerified"
-                                    class="shrink-0 text-xs text-muted"
-                                />
+                <div class="mt-3 flex flex-col gap-3">
+                    <!-- channel on the left, playback speed on the right (its own row on phones) -->
+                    <div class="flex flex-wrap items-center gap-3">
+                        <div class="flex min-w-0 items-center gap-3">
+                            <router-link :to="video.uploaderUrl ?? '/'" class="shrink-0">
+                                <UiAvatar :src="video.uploaderAvatar" :name="video.uploader" :size="40" />
                             </router-link>
-                            <div
-                                v-if="video.uploaderSubscriberCount >= 0"
-                                v-t="{
-                                    path: 'info.subscriber_count',
-                                    args: { count: numberFormat(video.uploaderSubscriberCount) },
-                                }"
-                                class="text-xs text-muted"
+                            <div class="min-w-0 leading-tight">
+                                <router-link
+                                    v-if="video.uploaderUrl"
+                                    class="flex items-center gap-1 font-semibold"
+                                    :to="video.uploaderUrl"
+                                >
+                                    <span class="truncate" v-text="video.uploader" />
+                                    <i-fa6-solid-circle-check
+                                        v-if="video.uploaderVerified"
+                                        class="shrink-0 text-xs text-muted"
+                                    />
+                                </router-link>
+                                <div
+                                    v-if="video.uploaderSubscriberCount >= 0"
+                                    v-t="{
+                                        path: 'info.subscriber_count',
+                                        args: { count: numberFormat(video.uploaderSubscriberCount) },
+                                    }"
+                                    class="text-xs text-muted"
+                                />
+                            </div>
+                            <button
+                                v-t="`actions.${subscribed ? 'unsubscribe' : 'subscribe'}`"
+                                class="ml-1 btn"
+                                :class="subscribed ? '' : 'btn-primary'"
+                                @click="subscribeHandler"
                             />
+                            <a
+                                v-if="video.uploaderUrl"
+                                :aria-label="$t('actions.rss_feed')"
+                                :title="$t('actions.rss_feed')"
+                                :href="`${apiUrl()}/feed/unauthenticated/rss?channels=${video.uploaderUrl.split('/')[2]}`"
+                                target="_blank"
+                                class="btn btn-icon text-muted btn-ghost max-sm:hidden"
+                            >
+                                <i-fa6-solid-rss />
+                            </a>
                         </div>
-                        <button
-                            v-t="`actions.${subscribed ? 'unsubscribe' : 'subscribe'}`"
-                            class="ml-1 btn"
-                            :class="subscribed ? '' : 'btn-primary'"
-                            @click="subscribeHandler"
-                        />
-                        <a
-                            v-if="video.uploaderUrl"
-                            :aria-label="$t('actions.rss_feed')"
-                            :title="$t('actions.rss_feed')"
-                            :href="`${apiUrl()}/feed/unauthenticated/rss?channels=${video.uploaderUrl.split('/')[2]}`"
-                            target="_blank"
-                            class="btn btn-icon text-muted btn-ghost max-sm:hidden"
+
+                        <!-- playback speed (with Loop on phones) -->
+                        <div
+                            v-if="usesGlobalPlayer || isMobile"
+                            class="flex items-center gap-2 text-sm *:h-9 *:rounded-full max-lg:w-full lg:ml-auto"
                         >
-                            <i-fa6-solid-rss />
-                        </a>
+                            <label v-if="isMobile" for="chkAutoLoop" class="chip shrink-0 cursor-pointer">
+                                <UiCheckbox id="chkAutoLoop" v-model="selectedAutoLoop" />
+                                <span v-t="'actions.loop'" />
+                            </label>
+                            <template v-if="usesGlobalPlayer">
+                                <span
+                                    v-t="'actions.playback_speed'"
+                                    class="flex items-center text-muted max-lg:hidden"
+                                />
+                                <div
+                                    class="segmented h-full max-w-full scrollbar-none overflow-x-auto *:shrink-0"
+                                    role="group"
+                                    :aria-label="$t('actions.playback_speed')"
+                                >
+                                    <button
+                                        v-for="rate in SPEEDS"
+                                        :key="rate"
+                                        type="button"
+                                        :aria-pressed="player.rate === rate"
+                                        @click="embed?.setPlaybackSpeed(rate)"
+                                        v-text="`${rate}×`"
+                                    />
+                                </div>
+                            </template>
+                        </div>
                     </div>
 
                     <div
-                        class="flex scrollbar-none items-center gap-2 overflow-x-auto max-sm:-mx-3 max-sm:w-[calc(100%+1.5rem)] max-sm:px-3 sm:ml-auto sm:flex-wrap sm:justify-end"
+                        class="flex scrollbar-none items-center gap-2 overflow-x-auto max-sm:-mx-3 max-sm:w-[calc(100%+1.5rem)] max-sm:px-3 sm:flex-wrap"
                     >
+                        <template v-if="!isMobile">
+                            <label for="chkAutoLoop" class="btn shrink-0 cursor-pointer">
+                                <UiCheckbox id="chkAutoLoop" v-model="selectedAutoLoop" />
+                                <span v-t="'actions.loop'" />
+                            </label>
+                            <button class="btn shrink-0" @click="toggleTheaterMode">
+                                <i-fa6-solid-compress v-if="theaterMode" />
+                                <i-fa6-solid-expand v-else />
+                                <span v-text="theaterMode ? 'Default view' : 'Theater mode'" />
+                            </button>
+                            <button v-if="usesGlobalPlayer" class="btn shrink-0" @click="minimizePlayer(router)">
+                                <i-fa6-solid-down-left-and-up-right-to-center />
+                                <span v-t="'actions.miniplayer'" />
+                            </button>
+                        </template>
                         <div
                             v-if="video.likes >= 0"
-                            class="flex shrink-0 items-center rounded-full bg-(--surface-muted) text-sm font-medium"
+                            class="flex shrink-0 items-center rounded-full bg-(--surface-muted) text-sm font-medium lg:ml-auto"
                         >
                             <span class="flex items-center gap-2 py-2 pr-3 pl-4" :title="addCommas(video.likes)">
                                 <i-fa6-solid-thumbs-up />
@@ -120,7 +169,7 @@
                                 {{ video.dislikes >= 0 ? numberFormat(video.dislikes) : "" }}
                             </span>
                         </div>
-                        <span v-else v-t="'video.ratings_disabled'" class="chip shrink-0" />
+                        <span v-else v-t="'video.ratings_disabled'" class="chip shrink-0 lg:ml-auto" />
                         <button class="btn shrink-0" @click="showShareModal = !showShareModal">
                             <i-fa6-solid-share />
                             <span v-t="'actions.share'" />
@@ -188,40 +237,6 @@
                         :playlist-index="index"
                         @close="showShareModal = !showShareModal"
                     />
-                </div>
-
-                <!-- playback options -->
-                <div class="mt-4 flex flex-wrap items-center gap-2 text-sm *:h-9 *:rounded-full">
-                    <label for="chkAutoLoop" class="chip cursor-pointer">
-                        <UiCheckbox id="chkAutoLoop" v-model="selectedAutoLoop" />
-                        <span v-t="'actions.loop'" />
-                    </label>
-                    <template v-if="!isMobile">
-                        <button class="chip cursor-pointer" @click="toggleTheaterMode">
-                            <i-fa6-solid-compress v-if="theaterMode" />
-                            <i-fa6-solid-expand v-else />
-                            <span v-text="theaterMode ? 'Default view' : 'Theater mode'" />
-                        </button>
-                        <button v-if="usesGlobalPlayer" class="chip cursor-pointer" @click="minimizePlayer(router)">
-                            <i-fa6-solid-down-left-and-up-right-to-center />
-                            <span v-t="'actions.miniplayer'" />
-                        </button>
-                    </template>
-                    <div v-if="usesGlobalPlayer" class="ml-auto flex items-center gap-2 rounded-none!">
-                        <span v-t="'actions.playback_speed'" class="text-muted max-lg:hidden" />
-                        <div class="segmented h-full" role="group" :aria-label="$t('actions.playback_speed')">
-                            <button
-                                v-for="rate in player.audioMode ? SPEEDS : EMBED_SPEEDS"
-                                :key="rate"
-                                type="button"
-                                :aria-pressed="
-                                    (player.audioMode ? player.rate : Math.min(player.rate, EMBED_MAX_RATE)) === rate
-                                "
-                                @click="embed?.setPlaybackSpeed(rate)"
-                                v-text="`${rate}×`"
-                            />
-                        </div>
-                    </div>
                 </div>
 
                 <!-- description -->
@@ -481,8 +496,6 @@ import {
     embed,
     isMobileLayout,
     SPEEDS,
-    EMBED_SPEEDS,
-    EMBED_MAX_RATE,
     openVideo,
     attachPlayer,
     setPlayerSlot,

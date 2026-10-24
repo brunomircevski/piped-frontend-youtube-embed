@@ -39,10 +39,9 @@ data, …) still comes from your Piped backend — only the frontend is forked.
 - **Keyboard shortcuts:** `Space`/`K` play/pause, `←`/`→` ±5 s, `J`/`L` ±10 s,
   `M` mute, `F` fullscreen, `Shift+,`/`Shift+.` speed, `0`–`9` jump to 0–90 %,
   `Home`/`End`.
-- **Playback speed** buttons 1×–2× (the embed's maximum), plus 2.5× and 3× in
-  audio mode. The last speed — including one picked in YouTube's own settings
-  menu — is remembered and applied to every new video; 2.5×/3× play at 2× in
-  the embed.
+- **Playback speed** buttons 1×–2× (the embed API's maximum). The last speed —
+  including one picked in YouTube's own settings menu — is remembered and
+  applied to every new video.
 - **Watch progress** is saved per video and resumed; it also feeds Piped's watch
   history progress bars when watch history is enabled.
 - Embed respects your Piped language, autoplay and captions preferences.
