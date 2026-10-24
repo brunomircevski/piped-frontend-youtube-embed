@@ -9,6 +9,12 @@
     </div>
     <h1 v-t="'titles.preferences'" class="text-center font-bold" />
     <hr />
+    <PreferenceRow for-id="chkYoutubeNoCookieEmbed">
+        <template #label>
+            <strong v-t="'actions.youtube_nocookie_embed'" />
+        </template>
+        <PreferenceSwitch id="chkYoutubeNoCookieEmbed" v-model="youtubeNoCookieEmbed" @change="onChange" />
+    </PreferenceRow>
     <label
         for="ddlTheme"
         class="mx-[15vw] my-2 flex items-center justify-between odd:bg-gray-200 max-md:mx-[2vw] dark:odd:bg-dark-800"
@@ -509,6 +515,7 @@ const showMarkers = usePreferenceBoolean("showMarkers", true);
 const minSegmentLength = usePreferenceNumber("minSegmentLength", 0);
 const dearrow = usePreferenceBoolean("dearrow", false);
 const selectedTheme = usePreferenceString("theme", "dark");
+const youtubeNoCookieEmbed = usePreferenceBoolean("youtubeNoCookieEmbed", true);
 const autoPlayVideo = usePreferenceBoolean("playerAutoPlay", true);
 const autoDisplayCaptions = usePreferenceBoolean("autoDisplayCaptions", false);
 const autoPlayNextCountdown = usePreferenceNumber("autoPlayNextCountdown", 5);

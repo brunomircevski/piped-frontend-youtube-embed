@@ -1,6 +1,15 @@
 <template>
     <div v-if="video && isEmbed" class="absolute top-0 left-0 z-50 size-full bg-black">
+        <YouTubeEmbed
+            v-if="useYoutubeEmbed"
+            ref="youtubeEmbed"
+            :video-id="getVideoId()"
+            :start-time="embedStartTime"
+            :is-embed="true"
+            @timeupdate="onTimeUpdate"
+        />
         <VideoPlayer
+            v-else
             ref="videoPlayer"
             :video="video"
             :sponsors="sponsors"
@@ -21,7 +30,15 @@
             <div class="min-w-0 flex-auto">
                 <Teleport defer to="#theaterModeSpot" :disabled="!theaterMode">
                     <div class="flex flex-row">
-                        <keep-alive>
+                        <YouTubeEmbed
+                            v-if="useYoutubeEmbed"
+                            ref="youtubeEmbed"
+                            class="min-w-0 flex-auto"
+                            :video-id="getVideoId()"
+                            :start-time="embedStartTime"
+                            @timeupdate="onTimeUpdate"
+                        />
+                        <keep-alive v-else>
                             <VideoPlayer
                                 ref="videoPlayer"
                                 :video="video"
@@ -362,6 +379,7 @@
 import { ref, computed, onMounted, onActivated, onDeactivated, onUnmounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import VideoPlayer from "./VideoPlayer.vue";
+import YouTubeEmbed from "./YouTubeEmbed.vue";
 import ContentItem from "./ContentItem.vue";
 import ErrorHandler from "./ErrorHandler.vue";
 import CommentItem from "./CommentItem.vue";
@@ -398,6 +416,7 @@ const router = useRouter();
 const smallViewQuery = window.matchMedia("(max-width: 640px)");
 
 const videoPlayer = ref(null);
+const youtubeEmbed = ref(null);
 const commentsEl = ref(null);
 
 const video = ref(null);
@@ -450,6 +469,14 @@ const toggleListenUrl = computed(() => {
 
 const isEmbed = computed(() => {
     return String(route.path).indexOf("/embed/") == 0;
+});
+
+const useYoutubeEmbed = computed(() => {
+    return getPreferenceBoolean("youtubeNoCookieEmbed", true);
+});
+
+const embedStartTime = computed(() => {
+    return parseTimeParam(route.query.t) || 0;
 });
 
 const uploadDate = computed(() => {
@@ -648,7 +675,8 @@ function getVideoId() {
 }
 
 function navigate(time) {
-    videoPlayer.value.seek(time);
+    if (useYoutubeEmbed.value) youtubeEmbed.value?.seek(time);
+    else videoPlayer.value?.seek(time);
 }
 
 function onTimeUpdate(time) {
@@ -715,7 +743,10 @@ function navigateNext() {
                 searchParams.set(param, params[param]);
                 break;
         }
-    searchParams.set("fullscreen", videoPlayer.value.isFullScreenEnabled());
+    const fullScreen = useYoutubeEmbed.value
+        ? (youtubeEmbed.value?.isFullScreenEnabled?.() ?? Boolean(document.fullscreenElement))
+        : videoPlayer.value?.isFullScreenEnabled?.();
+    searchParams.set("fullscreen", fullScreen);
     const paramStr = searchParams.toString();
     if (paramStr.length > 0) url += "&" + paramStr;
     router.push(url);
@@ -768,7 +799,7 @@ onMounted(() => {
                 };
             }
         })();
-        if (active.value) videoPlayer.value.loadVideo();
+        if (active.value && !useYoutubeEmbed.value && videoPlayer.value) videoPlayer.value.loadVideo();
     });
     playlistId.value = route.query.list;
     index.value = Number(route.query.index);
@@ -792,7 +823,7 @@ onActivated(() => {
     showChapters.value = !getPreferenceBoolean("minimizeChapters", false);
     if (video.value?.duration) {
         document.title = video.value.title + " - Piped";
-        videoPlayer.value.loadVideo();
+        if (!useYoutubeEmbed.value && videoPlayer.value) videoPlayer.value.loadVideo();
     }
     window.addEventListener("scroll", handleScroll);
 });

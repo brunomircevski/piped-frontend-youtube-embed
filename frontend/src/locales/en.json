@@ -52,6 +52,7 @@
         "skip_segment": "Skip Segment",
         "enable_dearrow": "Enable DeArrow",
         "theme": "Theme",
+        "youtube_nocookie_embed": "Use YouTube nocookie embed",
         "auto": "Auto",
         "dark": "Dark",
         "light": "Light",
