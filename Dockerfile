@@ -25,6 +25,9 @@ RUN --mount=type=cache,target=/root/.local/share/pnpm \
 
 FROM nginxinc/nginx-unprivileged:alpine
 
+# Links the GHCR package to this repository.
+LABEL org.opencontainers.image.source=https://github.com/brunomircevski/piped-frontend-youtube-embed
+
 COPY --chown=101:101 --from=build /app/dist/ /usr/share/nginx/html/
 
 COPY --chown=101:101 frontend/docker/nginx.conf /etc/nginx/conf.d/default.conf
