@@ -7,8 +7,7 @@
 # Build:  docker build -t piped-frontend .
 # Run:    docker run -e BACKEND_HOSTNAME=pipedapi.example.com -p 8080:80 ghcr.io/brunomircevski/piped-frontend
 
-# The build output is static files, so this stage runs natively even in multi-arch builds.
-FROM --platform=$BUILDPLATFORM node:lts-alpine AS build
+FROM node:lts-alpine AS build
 
 WORKDIR /app/
 
