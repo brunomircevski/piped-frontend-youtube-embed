@@ -75,6 +75,7 @@
                                         class="shrink-0 text-xs text-muted"
                                     />
                                 </router-link>
+                                <span v-else class="block truncate font-semibold" v-text="video.uploader" />
                                 <div
                                     v-if="video.uploaderSubscriberCount >= 0"
                                     v-t="{
@@ -85,13 +86,14 @@
                                 />
                             </div>
                             <button
+                                v-if="!video.limited"
                                 v-t="`actions.${subscribed ? 'unsubscribe' : 'subscribe'}`"
                                 class="ml-1 btn"
                                 :class="subscribed ? '' : 'btn-primary'"
                                 @click="subscribeHandler"
                             />
                             <a
-                                v-if="video.uploaderUrl"
+                                v-if="video.uploaderUrl && !video.limited"
                                 :aria-label="$t('actions.rss_feed')"
                                 :title="$t('actions.rss_feed')"
                                 :href="`${apiUrl()}/feed/unauthenticated/rss?channels=${video.uploaderUrl.split('/')[2]}`"
@@ -169,7 +171,11 @@
                                 {{ video.dislikes >= 0 ? numberFormat(video.dislikes) : "" }}
                             </span>
                         </div>
-                        <span v-else v-t="'video.ratings_disabled'" class="chip shrink-0 lg:ml-auto" />
+                        <span
+                            v-else-if="!video.limited"
+                            v-t="'video.ratings_disabled'"
+                            class="chip shrink-0 lg:ml-auto"
+                        />
                         <button class="btn shrink-0" @click="showShareModal = !showShareModal">
                             <i-fa6-solid-share />
                             <span v-t="'actions.share'" />
@@ -239,8 +245,14 @@
                     />
                 </div>
 
+                <!-- the backend couldn't extract this video; the embed still plays it -->
+                <div v-if="video.limited" class="mt-4 card text-sm">
+                    <p v-t="'info.limited_video'" />
+                    <p v-if="video.limitedReason" class="mt-1 text-muted" v-text="video.limitedReason" />
+                </div>
                 <!-- description -->
                 <div
+                    v-else
                     class="mt-4 card text-sm"
                     :class="{ 'cursor-pointer hover:bg-(--surface-hover)': !showDesc }"
                     @click="showDesc = true"
@@ -632,14 +644,42 @@ function fetchCommentsData() {
     return fetchJson(apiUrl() + "/comments/" + getVideoId());
 }
 
+// The backend can fail to extract a video YouTube's embed still plays (e.g. a
+// premiere that hasn't started). Show the page with what YouTube's oEmbed knows.
+async function limitedVideo(error) {
+    const id = getVideoId();
+    const watchUrl = encodeURIComponent(`https://www.youtube.com/watch?v=${id}`);
+    const info = await fetch(`https://www.youtube.com/oembed?format=json&url=${watchUrl}`)
+        .then(response => (response.ok ? response.json() : {}))
+        .catch(() => ({}));
+    const handle = info.author_url?.match(/\/(@[^/?#]+)/)?.[1];
+    return {
+        limited: true,
+        limitedReason: error.message,
+        title: info.title ?? "",
+        uploader: info.author_name ?? "",
+        uploaderUrl: handle ? `/${handle}` : null,
+        thumbnailUrl: info.thumbnail_url ?? `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
+        likes: -1,
+        dislikes: -1,
+        relatedStreams: [],
+        chapters: [],
+        audioStreams: [],
+        videoStreams: [],
+    };
+}
+
 async function getVideoData() {
     await fetchVideo()
-        .then(data => {
+        .then(async data => {
+            if (data.error && useYoutubeEmbed.value && !isEmbed.value) data = await limitedVideo(data);
             video.value = data;
             video.value.id = getVideoId();
         })
         .then(() => {
-            if (!video.value.error) {
+            if (video.value.limited) {
+                if (video.value.title) document.title = video.value.title + " - Piped";
+            } else if (!video.value.error) {
                 document.title = video.value.title + " - Piped";
                 channelId.value = video.value.uploaderUrl.split("/")[2];
                 if (!isEmbed.value) fetchSubscribedStatus();
@@ -931,7 +971,12 @@ onMounted(() => {
     getVideoData().then(() => {
         (async () => {
             const videoId = getVideoId();
-            if (window.db && getPreferenceBoolean("watchHistory", false) && !video.value.error) {
+            if (
+                window.db &&
+                getPreferenceBoolean("watchHistory", false) &&
+                !video.value.error &&
+                !video.value.limited
+            ) {
                 var tx = window.db.transaction("watch_history", "readwrite");
                 var store = tx.objectStore("watch_history");
                 var request = store.get(videoId);

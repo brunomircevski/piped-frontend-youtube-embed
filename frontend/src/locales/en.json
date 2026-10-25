@@ -276,6 +276,7 @@
         "selected_subscriptions": "Selected subscriptions",
         "subscriber_count": "{count} subscribers",
         "playlist_videos_unavailable": "The server didn't return any videos for this playlist.",
-        "native_player_quality": "When off, Piped's own player is used. YouTube currently blocks Piped backends from its high-quality streams, so that player usually gets a single 360p stream with no quality choice."
+        "native_player_quality": "When off, Piped's own player is used. YouTube currently blocks Piped backends from its high-quality streams, so that player usually gets a single 360p stream with no quality choice.",
+        "limited_video": "Piped couldn't load this video's details, for example because it's a premiere that hasn't started yet. YouTube's player can still play it."
     }
 }
