@@ -88,16 +88,12 @@ docker compose -f docker-compose.test.yml up -d --no-build
 
 ## Build and publish
 
-Every push to `main` (except docs-only changes) runs
-[`.github/workflows/docker.yml`](.github/workflows/docker.yml), which builds the
-image and publishes it to GitHub Container Registry as
-`ghcr.io/brunomircevski/piped-frontend:latest`. Run it by hand from the Actions
-tab (*Docker image* → *Run workflow*) to republish.
-
-To publish from your machine instead (after
-`docker login ghcr.io -u brunomircevski` with a token that has `write:packages`):
+Images are pushed by hand to GitHub Container Registry as
+`ghcr.io/brunomircevski/piped-frontend`. Log in once with a GitHub token that
+has the `write:packages` scope, then build and push:
 
 ```bash
-docker build -t ghcr.io/brunomircevski/piped-frontend:latest .
+docker login ghcr.io -u brunomircevski
+docker build --network=host -t ghcr.io/brunomircevski/piped-frontend:latest .
 docker push ghcr.io/brunomircevski/piped-frontend:latest
 ```
