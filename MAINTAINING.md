@@ -88,14 +88,16 @@ docker compose -f docker-compose.test.yml up -d --no-build
 
 ## Build and publish
 
-```bash
-docker build -t bruno704/piped-frontend-youtube-embed:latest .
-docker push bruno704/piped-frontend-youtube-embed:latest
-```
+Every push to `main` (except docs-only changes) runs
+[`.github/workflows/docker.yml`](.github/workflows/docker.yml), which builds the
+image for amd64 and arm64 and publishes it to GitHub Container Registry as
+`ghcr.io/brunomircevski/piped-frontend:latest` and `:sha-<commit>`. Run it by
+hand from the Actions tab (*Docker image* → *Run workflow*) to republish.
 
-Multi-arch:
+To publish from your machine instead (after
+`docker login ghcr.io -u brunomircevski` with a token that has `write:packages`):
 
 ```bash
 docker buildx build --platform linux/amd64,linux/arm64 \
-  -t bruno704/piped-frontend-youtube-embed:latest --push .
+  -t ghcr.io/brunomircevski/piped-frontend:latest --push .
 ```

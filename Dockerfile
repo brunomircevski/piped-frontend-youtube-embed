@@ -4,10 +4,11 @@
 # The frontend source lives in frontend/ (upstream TeamPiped/Piped vendored as a git
 # subtree, plus our changes). Same build, same nginx, same entrypoint/env vars.
 #
-# Build:  docker build -t piped-frontend-youtube-embed .
-# Run:    docker run -e BACKEND_HOSTNAME=pipedapi.example.com -p 8080:80 piped-frontend-youtube-embed
+# Build:  docker build -t piped-frontend .
+# Run:    docker run -e BACKEND_HOSTNAME=pipedapi.example.com -p 8080:80 ghcr.io/brunomircevski/piped-frontend
 
-FROM node:lts-alpine AS build
+# The build output is static files, so this stage runs natively even in multi-arch builds.
+FROM --platform=$BUILDPLATFORM node:lts-alpine AS build
 
 WORKDIR /app/
 

@@ -62,8 +62,8 @@ data, …) still comes from your Piped backend — only the frontend is forked.
 ## Usage
 
 It is a drop-in replacement for the standard Piped frontend image. Replace
-`1337kavin/piped-frontend` with `bruno704/piped-frontend-youtube-embed`; the
-same environment variables (`BACKEND_HOSTNAME`, `HTTP_MODE`, `HTTP_WORKERS`,
+`1337kavin/piped-frontend` with `ghcr.io/brunomircevski/piped-frontend`
+(amd64 and arm64); the same environment variables (`BACKEND_HOSTNAME`, `HTTP_MODE`, `HTTP_WORKERS`,
 `HTTP_PORT`) apply.
 
 ## Try it locally
