@@ -59,7 +59,13 @@ const IFRAME_ALLOW =
     "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen; web-share";
 
 // After setPlaybackRate the player keeps reporting the old rate for a moment.
-const RATE_SETTLE_MS = 2000;
+const RATE_SETTLE_MS = 1500;
+// setPlaybackRate is ignored while the player is still loading or showing an ad;
+// resend it this many times before giving up (without forgetting the speed).
+const RATE_MAX_RETRIES = 6;
+// YouTube drops back to 1x by itself around loads, ads and restarts. A rate
+// change reported this soon after a state change is a reset, not a user choice.
+const RATE_RESET_GUARD_MS = 2500;
 const PROGRESS_SAVE_MS = 5000;
 const SEEK_SMALL = 5;
 const SEEK_LARGE = 10;
@@ -67,6 +73,7 @@ const SEEK_LARGE = 10;
 // YT.PlayerState
 const ENDED = 0;
 const PLAYING = 1;
+const PAUSED = 2;
 const BUFFERING = 3;
 
 const props = defineProps({
@@ -106,8 +113,12 @@ let duration = 0;
 let playerState = -1;
 let isMuted = false;
 let rateApplied = false;
+// Rate we asked the player for and are waiting to see reported back
 let pendingRate = null;
-let pendingRateAt = 0;
+let rateVerifyTimer = null;
+// Last rate the player reported
+let reportedRate = null;
+let rateGuardUntil = 0;
 let lastSave = 0;
 let skippedNoticeTimer = null;
 let readyTimers = [];
@@ -161,10 +172,15 @@ function storeSpeed(rate) {
     emit("ratechange", rate);
 }
 
-function applyRate(rate) {
+function applyRate(rate, attempt = 0) {
     pendingRate = rate;
-    pendingRateAt = Date.now();
     postCommand("setPlaybackRate", [rate]);
+    clearTimeout(rateVerifyTimer);
+    rateVerifyTimer = setTimeout(() => {
+        if (pendingRate !== rate) return;
+        if (reportedRate !== rate && attempt < RATE_MAX_RETRIES) applyRate(rate, attempt + 1);
+        else pendingRate = null;
+    }, RATE_SETTLE_MS);
 }
 
 function setPlaybackSpeed(rate) {
@@ -296,10 +312,13 @@ function onStateChange(state) {
     const previous = playerState;
     playerState = state;
 
-    if (state === PLAYING && !rateApplied) {
-        // The last used speed carries over to every new video.
+    // Pausing never resets the speed; loads, ads, buffering and restarts can.
+    if (state !== PAUSED) rateGuardUntil = Date.now() + RATE_RESET_GUARD_MS;
+
+    if (state === PLAYING) {
+        // The remembered speed carries over to every new video and survives resets.
         rateApplied = true;
-        if (currentRate.value !== 1) applyRate(currentRate.value);
+        if (pendingRate === null && currentRate.value !== (reportedRate ?? 1)) applyRate(currentRate.value);
     }
     emit("playingchange", state === PLAYING || state === BUFFERING);
 
@@ -316,7 +335,10 @@ function onStateChange(state) {
 function onInfo(info) {
     if (typeof info.duration === "number" && info.duration > 0) duration = info.duration;
     if (typeof info.muted === "boolean") isMuted = info.muted;
-    if (typeof info.playbackRate === "number" && rateApplied) onRateInfo(info.playbackRate);
+    if (typeof info.playbackRate === "number") {
+        reportedRate = info.playbackRate;
+        if (rateApplied) onRateInfo(info.playbackRate);
+    }
     if (typeof info.playerState === "number" && info.playerState !== playerState) onStateChange(info.playerState);
 
     if (typeof info.currentTime === "number") {
@@ -331,12 +353,19 @@ function onInfo(info) {
 }
 
 function onRateInfo(rate) {
-    if (pendingRate !== null) {
-        if (rate !== pendingRate && Date.now() - pendingRateAt < RATE_SETTLE_MS) return;
+    if (rate === currentRate.value) {
         pendingRate = null;
+        return;
+    }
+    // Still waiting for our own setPlaybackRate; the verify timer resends it.
+    if (pendingRate !== null) return;
+    // YouTube reset the speed by itself: put the remembered one back.
+    if (Date.now() < rateGuardUntil) {
+        applyRate(currentRate.value);
+        return;
     }
     // Remember speed changes made from YouTube's own settings menu too.
-    if (rate !== currentRate.value && rate >= MIN_RATE && rate <= MAX_RATE) storeSpeed(rate);
+    if (rate >= MIN_RATE && rate <= MAX_RATE) storeSpeed(rate);
 }
 
 function onMessage(event) {
@@ -403,6 +432,7 @@ onBeforeUnmount(() => {
     flushProgress();
     clearReadyTimers();
     clearTimeout(skippedNoticeTimer);
+    clearTimeout(rateVerifyTimer);
     window.removeEventListener("message", onMessage);
     document.removeEventListener("keydown", onKeyDown);
     document.removeEventListener("visibilitychange", onVisibilityChange);

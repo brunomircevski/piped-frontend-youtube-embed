@@ -364,6 +364,12 @@ function isFullScreenEnabled() {
 function setPlaying(value) {
     playing.value = value;
     if (!props.active) return;
+    // A source change resets the element's speed; never let it play at the wrong one.
+    if (value) {
+        currentRate.value = readStoredSpeed();
+        const el = audioEl.value;
+        if (el && el.playbackRate !== currentRate.value) el.defaultPlaybackRate = el.playbackRate = currentRate.value;
+    }
     if (value) playWhenReady = true;
     emit("playingchange", value);
     if ("mediaSession" in navigator) navigator.mediaSession.playbackState = value ? "playing" : "paused";

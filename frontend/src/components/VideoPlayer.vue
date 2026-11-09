@@ -122,6 +122,8 @@ let shakaPromise = null;
 let hotkeysPromise = null;
 let lastSelectedTextTrack = null;
 let thumbnailVttUrl = null;
+// The remembered speed has been applied to the current load
+let rateRestored = false;
 
 const shouldAutoPlay = computed(() => {
     return getPreferenceBoolean("playerAutoPlay", true) && !props.isEmbed;
@@ -500,6 +502,11 @@ async function setPlayerAttrs(localPlayer, el, uri, mime, shaka) {
                 await new Promise(resolve => el.addEventListener("seeked", resolve, { once: true }));
             }
             initialSeekComplete.value = true;
+            // Before subtitles load, so a failing subtitle track can't leave 1x.
+            const rate = getPreferenceNumber("rate", 1);
+            el.defaultPlaybackRate = rate;
+            if (rate !== 1) playerInstance.trickPlay(rate);
+            rateRestored = true;
             let lang = "en";
             const prefLang = getPreferenceString("hl", "en").substr(0, 2);
             const audioTracks = playerInstance.getAudioTracks();
@@ -562,9 +569,6 @@ async function setPlayerAttrs(localPlayer, el, uri, mime, shaka) {
                 }),
             );
             el.volume = getPreferenceNumber("volume", 1);
-            const rate = getPreferenceNumber("rate", 1);
-            el.playbackRate = rate;
-            el.defaultPlaybackRate = rate;
 
             applyPreferredTextTrack();
             await setupThumbnailTrack();
@@ -587,6 +591,7 @@ async function setPlayerAttrs(localPlayer, el, uri, mime, shaka) {
 
 async function loadVideo() {
     initialSeekComplete.value = false;
+    rateRestored = false;
 
     updateSponsors();
 
@@ -729,10 +734,14 @@ async function loadVideo() {
             setPreference("volume", el.volume, true);
         });
 
-        el.addEventListener("ratechange", e => {
+        el.addEventListener("ratechange", () => {
             const rate = el.playbackRate;
-            if (rate > 0 && !isNaN(el.duration) && !isNaN(el.duration - e.timeStamp / 1000))
+            // Loading a source resets the element to its default rate (and Shaka sets
+            // 0 while buffering); only remember changes made once playback is set up.
+            if (rate > 0 && initialSeekComplete.value && rateRestored && !destroying.value) {
+                el.defaultPlaybackRate = rate;
                 setPreference("rate", rate, true);
+            }
         });
 
         el.addEventListener("ended", () => {
