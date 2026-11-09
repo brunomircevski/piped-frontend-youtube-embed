@@ -16,7 +16,8 @@ RUN --mount=type=cache,target=/var/cache/apk \
 
 COPY frontend/ .
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Node 25+ no longer bundles corepack.
+RUN npm install -g pnpm@latest
 
 RUN --mount=type=cache,target=/root/.local/share/pnpm \
     --mount=type=cache,target=/app/node_modules \

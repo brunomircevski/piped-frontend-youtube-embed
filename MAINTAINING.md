@@ -48,8 +48,8 @@ days (translations), so conflicts should be rare.
 - `src/components/ui/Avatar.vue` — avatar with initial-letter fallback.
 - Most other components: restyled to use the tokens/classes above.
 - `src/locales/en.json` — new strings (other locales fall back to English).
-- `package.json`/`pnpm-lock.yaml` — dependencies bumped within their major
-  versions (security fixes in DOMPurify and Vue).
+- `package.json`/`pnpm-lock.yaml` — dependencies kept at their latest versions.
+- `Dockerfile` — installs pnpm with npm (Node 25+ images no longer ship corepack).
 
 ## Develop
 
