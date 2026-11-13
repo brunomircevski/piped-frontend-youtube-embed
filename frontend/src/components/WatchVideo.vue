@@ -53,7 +53,7 @@
                 </Teleport>
 
                 <!-- video title -->
-                <h1 class="mt-3 text-xl/snug font-semibold wrap-break-word" v-text="video.title" />
+                <h1 class="mt-1.5 text-xl/snug font-semibold wrap-break-word" v-text="video.title" />
 
                 <!-- channel + actions -->
                 <div class="mt-3 flex flex-col gap-3">
