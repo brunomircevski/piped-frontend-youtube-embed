@@ -95,10 +95,14 @@ server. The systemd user timer `piped-auto-maintain.timer` runs
 `claude -p` with `prompt.md`. Claude then updates every dependency (npm and
 GitHub Actions), runs lint and build, and runs `bin/smoke-test`: an image build
 identical to CI, checked in headless Chromium against the real backend.
-Only if all of that passes does it commit and push to `main`, wait for the
-image workflow, and report on Telegram. It sends nothing when there was
-nothing to update. Node isn't installed on the host, so `bin/pnpm` runs pnpm in
-`node:lts-alpine`.
+Only if all of that passes does it commit and push to `main` and wait for the
+image workflow. Then `bin/deploy` pulls the new image, restarts the production
+container (`/opt/docker/piped`, service `pipedfrontend`) and runs the smoke test
+against the live site. If that fails, it rolls back to the previous image.
+Claude reports on Telegram, and sends nothing when there was nothing to update.
+`bin/cleanup` runs after every run and removes test images, old Playwright
+images, dangling images, stale build cache and old logs. Node isn't installed on
+the host, so `bin/pnpm` runs pnpm in `node:lts-alpine`.
 
 ```bash
 systemctl --user start piped-auto-maintain.service   # run now

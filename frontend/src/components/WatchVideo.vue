@@ -53,7 +53,12 @@
                 </Teleport>
 
                 <!-- video title -->
-                <h1 class="text-xl/snug font-semibold wrap-break-word" v-text="video.title" />
+                <!-- desktop default view: same gap below the player as theater mode's spot (mb-6) -->
+                <h1
+                    class="text-xl/snug font-semibold wrap-break-word"
+                    :class="{ 'lg:mt-6': !theaterMode }"
+                    v-text="video.title"
+                />
 
                 <!-- channel + actions -->
                 <div class="mt-3 flex flex-col gap-3">
