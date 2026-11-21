@@ -21,7 +21,7 @@ export default defineConfig({
             dts: false,
         }),
         VueI18nPlugin({
-            include: path.resolve(__dirname, "./src/locales/**"),
+            include: path.resolve(import.meta.dirname, "./src/locales/**"),
         }),
         legacy({
             targets: ["defaults", "not IE 11"],
@@ -81,7 +81,7 @@ export default defineConfig({
     ],
     resolve: {
         alias: {
-            "@": path.resolve(__dirname, "./src"),
+            "@": path.resolve(import.meta.dirname, "./src"),
         },
     },
     build: {
