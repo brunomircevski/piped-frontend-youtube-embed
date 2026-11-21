@@ -86,6 +86,26 @@ docker build --network=host -t piped-frontend-youtube-embed:dev .
 docker compose -f docker-compose.test.yml up -d --no-build
 ```
 
+## Automatic weekly maintenance
+
+Claude Code updates the dependencies every Friday at 09:00 on the homelab
+server. The systemd user timer `piped-auto-maintain.timer` runs
+`~/auto-maintain/piped-frontend/run.sh`. That script resets a dedicated clone
+(`~/auto-maintain/piped-frontend/repo`) to `origin/main` and starts
+`claude -p` with `prompt.md`. Claude then updates every dependency (npm and
+GitHub Actions), runs lint and build, and runs `bin/smoke-test`: an image build
+identical to CI, checked in headless Chromium against the real backend.
+Only if all of that passes does it commit and push to `main`, wait for the
+image workflow, and report on Telegram. It sends nothing when there was
+nothing to update. Node isn't installed on the host, so `bin/pnpm` runs pnpm in
+`node:lts-alpine`.
+
+```bash
+systemctl --user start piped-auto-maintain.service   # run now
+systemctl --user list-timers piped-auto-maintain.timer
+ls ~/auto-maintain/piped-frontend/logs/              # run logs + smoke screenshots
+```
+
 ## Build and publish
 
 Every push to `main` (except docs-only changes) runs
