@@ -3,3 +3,6 @@ data/
 node_modules/
 dist/
 *.log
+
+# Benchmark videos (large, regenerate with benchmarks/speedtest/scripts)
+benchmarks/**/*.mp4

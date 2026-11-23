@@ -59,6 +59,27 @@ data, …) still comes from your Piped backend — only the frontend is forked.
   AAC). If your Piped backend can't extract streams for a video, audio mode
   shows a message and the embed still works.
 
+## Speed
+
+Page-load comparison against youtube.com (headless Chromium, cold cache, median
+of 3 runs; both sides timed from navigation start, 2026-11-23):
+
+| Page    | YouTube | Piped fork | Faster |
+|---------|--------:|-----------:|-------:|
+| Search  | 3.23 s  | 0.45 s     | 7.1x   |
+| Player  | 2.30 s  | 1.28 s     | 1.8x   |
+| Channel | 3.30 s  | 0.46 s     | 7.2x   |
+
+Search = results for "lofi hip hop", Player = time until the video is playing
+(Rick Astley), Channel = @LinusTechTips. The test ran on the same host as the
+Piped backend, so the backend hop is LAN-local. Scripts and raw data are in
+[benchmarks/speedtest](benchmarks/speedtest).
+
+![Search](docs/speedtest/search.jpg)
+![Player](docs/speedtest/player.jpg)
+![Channel](docs/speedtest/channel.jpg)
+![Results](docs/speedtest/results.jpg)
+
 ## Usage
 
 It is a drop-in replacement for the standard Piped frontend image. Replace
